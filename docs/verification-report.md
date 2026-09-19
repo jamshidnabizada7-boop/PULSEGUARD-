@@ -54,3 +54,25 @@ blocked by #2 (same root cause).
 
 Probe rows in `pulseguard_metrics` (tenant-alpha, `probe-acme-001`) left intentionally —
 they seed the dashboard demo. No orphan CRM/Slack records created (writes were blocked).
+
+---
+
+## Addendum — final autonomous session (2026-09-19 ~11:30 PKT)
+
+- **Slack alert: DELIVERED.** The full interactive churn-risk card (account, tenant, drop,
+  health, signal, Acknowledge button) posted to `#pulseguard-alpha` by the Fastn app —
+  requires the bot to be invited to channels (`/invite @Fastn`), which is now done for both.
+- **Tenant routing: PROVEN.** Test-panel runs carrying `x-end-org-id` resolve the correct
+  tenant connections (HubSpot search found Acme Corp `347506893507`; correct channel selected).
+- **Ack loop: PROVEN** (`status: ACKNOWLEDGED`, `db-ack-ok`, `state-ok`) — DB row flips to
+  acknowledged; the CRM note inside agent-driven execution is gated by the same platform
+  boundary (bug #2) and succeeds via Test-panel context.
+- **Confirmed platform boundary**: agent-driven execution (`executeWorkflow` via MCP) cannot
+  reach tenant-scoped connections even with `orgId: "managed"` + explicit connectionId pins —
+  resolution keys on the execution's end-org, which the tool cannot set. The dashboard Test
+  panel (which accepts headers) and Fastn's own trigger infrastructure are the sanctioned paths.
+- **Consequence for the demo**: fire the loop via the dashboard **Test panel** (headers saved)
+  or via the deployed app's webhook trigger URLs once Fastn restores API-key auth (bug #1).
+- **Live code of record synced** to `fastn/pulseguard-risk-engine.js` and
+  `fastn/pulseguard-ack-loop.js` (includes: UUID-keyed CONNECTION_MAP, orgId "managed",
+  3-shape note fallback chain, Slack channel resolution via listConversationsList).
