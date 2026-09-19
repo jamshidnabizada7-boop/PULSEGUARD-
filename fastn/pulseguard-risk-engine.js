@@ -43,8 +43,9 @@ export default async function (ctx) {
 
   let cfg = {};
   try { cfg = JSON.parse(headers["x-fastn-installation-config"] || "{}"); } catch (e) { cfg = {}; }
-  const threshold = Number(cfg.riskThreshold || 40);
-  const channel = cfg.slackChannel || (tenant.indexOf("beta") >= 0 ? "#pulseguard-beta" : "#pulseguard-alpha");
+  const isBeta = tenant === "tenant-beta" || tenant === "8d8b6c6c-ec68-454c-99c6-a549b7b7e28b" || tenant.indexOf("beta") >= 0;
+  const threshold = Number(cfg.riskThreshold || (isBeta ? 35 : 40));
+  const channel = cfg.slackChannel || (isBeta ? "#pulseguard-beta" : "#pulseguard-alpha");
 
   if (!customerId) return { status: "BAD_REQUEST", reason: "customerId is required" };
 
@@ -128,9 +129,9 @@ export default async function (ctx) {
     steps.push("unified-createNote-fail:" + (e && e.message));
     const now = new Date().toISOString();
     const noteShapes = [
-      { label: "props+assoc279", body: { properties: { hs_note_body: noteTitle + "\n" + noteBody, hs_timestamp: now }, associations: [{ to: { id: String(account.id) }, types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: 279 }] }] } },
+      { label: "exact-toObjectId-190", body: { properties: { hs_note_body: noteTitle + "\n" + noteBody, hs_timestamp: now }, toObjectId: String(account.id), associationTypeId: "190" } },
       { label: "flat-body-company", body: { noteBody: noteTitle + "\n" + noteBody, companyId: String(account.id) } },
-      { label: "props-only", body: { properties: { hs_note_body: noteTitle + "\n" + noteBody, hs_timestamp: now } } },
+      { label: "props+assoc279", body: { properties: { hs_note_body: noteTitle + "\n" + noteBody, hs_timestamp: now }, associations: [{ to: { id: String(account.id) }, types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: 279 }] }] } },
     ];
     for (const shape of noteShapes) {
       try {
