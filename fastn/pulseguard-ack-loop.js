@@ -43,7 +43,8 @@ export default async function (ctx) {
     try {
       await fastn.connector.hubspot.createNoteWithAssociation({
         properties: { hs_note_body: "PulseGuard: risk acknowledged by " + ackBy + ". Retention play scheduled.", hs_timestamp: new Date().toISOString() },
-        associations: [{ to: { id: String(customerId) }, types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: 279 }] }],
+        toObjectId: String(customerId),
+        associationTypeId: "190",
       });
       steps.push("direct-note-ok");
     } catch (e2) { steps.push("direct-note-fail:" + (e2 && e2.message)); }
