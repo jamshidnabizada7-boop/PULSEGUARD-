@@ -13,5 +13,5 @@
   - `slackChannel` (Alert channel)
   - `riskThreshold` (Churn risk threshold %)
 - **Tenant Installations**:
-  - Tenant Alpha (`1d599802-f9ad-4d62-830a-e66854c108c3`): `inst_001013f1daf0`
-  - Tenant Beta (`8d8b6c6c-ec68-454c-99c6-a549b7b7e28b`): `inst_5cc2e6ec7487`
+  - Tenant Alpha (`1d599802-f9ad-4d62-830a-e66854c108c3`): `inst_dcafc09c2f07`
+  - Tenant Beta (`8d8b6c6c-ec68-454c-99c6-a549b7b7e28b`): `inst_6e346d508e28`

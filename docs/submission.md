@@ -69,8 +69,8 @@ Product Telemetry Event (Usage drop -52%)
 | **Risk Engine Workflow** | `wf_fe925b124168` (`pulseguard-risk-engine-v2`) | Core detection, enrichment, CRM timeline writing, and Slack alerting |
 | **Ack Loop Workflow** | `wf_4afb70d49708` (`pulseguard-ack-loop`) | Closed-loop actuation updating CRM and dashboard upon CS acknowledgement |
 | **Embedded Widget** | `wgt_fa0d339f81d4` (*PulseGuard Integrations*) | Embedded APP widget exposing HubSpot + Slack configuration & risk threshold settings |
-| **Alpha Installation** | `inst_001013f1daf0` | Active tenant configuration: riskThreshold: 40%, slackChannel: `#pulseguard-alpha` |
-| **Beta Installation** | `inst_5cc2e6ec7487` | Active tenant configuration: riskThreshold: 35%, slackChannel: `#pulseguard-beta` |
+| **Alpha Installation** | `inst_dcafc09c2f07` | Active tenant configuration: riskThreshold: 40%, slackChannel: `#pulseguard-alpha`, ackBaseUrl configured |
+| **Beta Installation** | `inst_6e346d508e28` | Active tenant configuration: riskThreshold: 35%, slackChannel: `#pulseguard-beta`, ackBaseUrl configured |
 | **HubSpot Connector** | `9036a742-6baa-4c72-be3c-3789b34d6f9b` | Auth method `45e0c3c0-fb8b-48c8-938b-b257bb954123` |
 | **Slack Connector** | `8de5d696-5289-4c9c-ade4-de918d019d06` | Auth method `7195748d-a02f-49e4-9e76-7e48d76a3b3c` |
 | **MCP Remote Gateway** | `https://mcp.fastn.dev` | 117 platform tools accessed via gate-cleared MCP sessions |

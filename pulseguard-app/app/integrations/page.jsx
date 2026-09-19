@@ -6,7 +6,7 @@ const TENANT_INTEGRATIONS = {
   'tenant-alpha': {
     name: 'Tenant Alpha — Acme Corp',
     endOrgId: '1d599802-f9ad-4d62-830a-e66854c108c3',
-    installationId: 'inst_001013f1daf0',
+    installationId: 'inst_dcafc09c2f07',
     hubspotCompany: 'Acme Corp (ID: 347506893507)',
     slackChannel: '#pulseguard-alpha',
     threshold: 40,
@@ -15,8 +15,8 @@ const TENANT_INTEGRATIONS = {
   'tenant-beta': {
     name: 'Tenant Beta — Globex Exports',
     endOrgId: '8d8b6c6c-ec68-454c-99c6-a549b7b7e28b',
-    installationId: 'inst_5cc2e6ec7487',
-    hubspotCompany: 'Globex Exports',
+    installationId: 'inst_6e346d508e28',
+    hubspotCompany: 'Globex Exports (ID: 347476273912)',
     slackChannel: '#pulseguard-beta',
     threshold: 35,
     status: 'ACTIVE',

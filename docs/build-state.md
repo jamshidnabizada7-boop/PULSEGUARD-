@@ -24,7 +24,7 @@
 - Risk Engine (THE live one): `wf_fe925b124168` slug `pulseguard-risk-engine-v2` — dashboard "Latest v3"
 - Ack Loop: `wf_4afb70d49708` · Platform API util: `wf_bf65ee4595f7` (live) · Bootstrap: `wf_1cfc55bdc0cd` · Risk v1 (superseded): `wf_19ea1eca8222`
 - Widget: `wgt_fa0d339f81d4` "PulseGuard Integrations" (APP type, hubspot+slack, both workflows)
-- Installations: ALPHA `inst_001013f1daf0` · BETA `inst_5cc2e6ec7487` (status active, config: riskThreshold 40/35, slackChannel set)
+- Installations: ALPHA `inst_dcafc09c2f07` · BETA `inst_6e346d508e28` (status active, config: riskThreshold 40/35, slackChannel set, ackBaseUrl: "https://pulseguard-app-nu.vercel.app")
 - HubSpot: Acme Corp `347506893507` · Globex Exports (find via searchCompanies query "globex")
 - Webhook config (unused): `cwc_e493523badca` on HTTP API connector `b77f2010-181e-4a97-8094-4d3c513322d9`
 - HubSpot authMethod `45e0c3c0-fb8b-48c8-938b-b257bb954123` · Slack authMethod `7195748d-a02f-49e4-9e76-7e48d76a3b3c` · Fastn Workspace connector `770f8e5d-d218-423f-9ed4-998b7165f092` authMethod `3769fc44-0dc3-4949-b3fc-00b5a0847ab3`
@@ -39,7 +39,7 @@
 6. All 8 platform bugs with evidence: `Desktop/PulseGuard/docs/bug-reports.md` (submit in feedback form for bonus points).
 
 ## REMAINING WORK & HANDOFF STATUS
-1. **Ack button URL**: ✅ RESOLVED. Live Vercel deployment at `https://pulseguard-app-nu.vercel.app`. Installation configs created (`cfg_62ea722ea0f2` for Alpha, `cfg_aaa74fa18e19` for Beta, `cfg_801e83d3ea61` for widget template) with `ackBaseUrl: "https://pulseguard-app-nu.vercel.app"`.
+1. **Ack button URL & Installation Configs**: ✅ FULLY RESOLVED. Live Vercel deployment at `https://pulseguard-app-nu.vercel.app`. Active tenant installations (`inst_dcafc09c2f07` for Alpha, `inst_6e346d508e28` for Beta) verified via `fastnPlatform__getInstallationResolvedConfig` with `ackBaseUrl: "https://pulseguard-app-nu.vercel.app"`. Slack alert Acknowledge buttons route to live production Vercel endpoints without DNS error.
 2. **Tenant-Beta E2E Parameters**: ✅ IDENTIFIED & VERIFIED. Globex Exports HubSpot ID is `347476273912`. Test panel headers `{"x-end-org-id":"8d8b6c6c-ec68-454c-99c6-a549b7b7e28b","x-fastn-installation-config":"{\"slackChannel\":\"#pulseguard-beta\",\"riskThreshold\":35,\"ackBaseUrl\":\"https://pulseguard-app-nu.vercel.app\"}"}` routes alert card strictly to `#pulseguard-beta`.
 3. **Evidence Artifacts**: ✅ CAPTURED. All 8 required PNG screenshots (`01-slack-card-alpha.png` through `08-tenant-beta-isolated-run.png`) are stored in `evidence/`.
 4. **Vercel Deployment**: ✅ LIVE at [https://pulseguard-app-nu.vercel.app/?tenant=tenant-alpha](https://pulseguard-app-nu.vercel.app/?tenant=tenant-alpha).
