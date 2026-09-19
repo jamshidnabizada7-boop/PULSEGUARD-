@@ -13,6 +13,8 @@ const CONNECTION_MAP = {
     slack: "ucl:personal_dc05aac8b2c7b361ba84:8d8b6c6c-ec68-454c-99c6-a549b7b7e28b:8de5d696-5289-4c9c-ade4-de918d019d06:default",
   },
 };
+CONNECTION_MAP["1d599802-f9ad-4d62-830a-e66854c108c3"] = CONNECTION_MAP["tenant-alpha"];
+CONNECTION_MAP["8d8b6c6c-ec68-454c-99c6-a549b7b7e28b"] = CONNECTION_MAP["tenant-beta"];
 
 export default async function (ctx) {
   const input = ctx.input || {};
@@ -36,7 +38,7 @@ export default async function (ctx) {
   } catch (e) { steps.push("db-ack-fail:" + (e && e.message)); }
 
   try {
-    await fastn.unified.crm.note.create({ accountId: customerId, title: "PulseGuard: risk acknowledged", content: "CS acknowledged the churn-risk alert. Owner: " + ackBy + ". Retention play scheduled." }, { provider: "hubspot" });
+    await fastn.unified.crm.note.create({ parent_id: customerId, title: "PulseGuard: risk acknowledged", body: "CS acknowledged the churn-risk alert. Owner: " + ackBy + ". Retention play scheduled." }, { provider: "hubspot" });
     steps.push("unified-note-ok");
   } catch (e) {
     steps.push("unified-note-fail:" + (e && e.message));

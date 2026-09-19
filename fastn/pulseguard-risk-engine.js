@@ -123,7 +123,7 @@ export default async function (ctx) {
     "\nSignal: " + metricSummary;
   let noteOk = false;
   try {
-    await fastn.unified.crm.note.create({ accountId: account.id, title: noteTitle, content: noteBody }, { provider: "hubspot" });
+    await fastn.unified.crm.note.create({ parent_id: String(account.id), title: noteTitle, body: noteBody }, { provider: "hubspot" });
     noteOk = true; steps.push("unified-createNote-ok");
   } catch (e) {
     steps.push("unified-createNote-fail:" + (e && e.message));
