@@ -191,11 +191,9 @@ export default function Runs() {
         <div className="page-head">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <h1 style={{ marginBottom: 0 }}>
-                Activity <span className="grad-text">&amp; proof</span>
-              </h1>
-              <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.12)', color: 'var(--ok)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                <span className="badge-dot pulse" />
+              <h1 style={{ marginBottom: 0 }}>Activity &amp; proof</h1>
+              <span className="badge" style={{ color: 'var(--muted)' }}>
+                <span className="badge-dot pulse" style={{ color: 'var(--ok)' }} />
                 Live
               </span>
             </div>
@@ -357,13 +355,7 @@ export default function Runs() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span
                               className="badge"
-                              style={{
-                                fontSize: 10,
-                                padding: '2px 8px',
-                                background: isAlpha ? 'rgba(139, 92, 246, 0.12)' : 'rgba(34, 211, 238, 0.1)',
-                                color: isAlpha ? 'var(--accent)' : 'var(--accent2)',
-                                border: isAlpha ? '1px solid rgba(139, 92, 246, 0.28)' : '1px solid rgba(34, 211, 238, 0.25)',
-                              }}
+                              style={{ color: isAlpha ? 'var(--accent)' : 'var(--accent2)', fontSize: 10.5 }}
                             >
                               {isAlpha ? 'Alpha' : 'Beta'}
                             </span>

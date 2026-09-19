@@ -28,9 +28,7 @@ export default function Integrations() {
         <div className="page-head">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <h1 style={{ marginBottom: 0 }}>
-                Integrations <span className="grad-text">&amp; connections</span>
-              </h1>
+              <h1 style={{ marginBottom: 0 }}>Integrations &amp; connections</h1>
               <span className="badge ack">Both connected</span>
             </div>
             <p className="sub" style={{ marginBottom: 0 }}>

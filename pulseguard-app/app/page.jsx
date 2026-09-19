@@ -27,20 +27,20 @@ function Spark({ points, isRisk, id }) {
   const areaPath = `${linePath} L${w},${h} L0,${h} Z`;
   const lastPoint = coords[coords.length - 1];
 
-  const strokeColor = isRisk ? '#fb7185' : '#34d399';
+  const strokeColor = isRisk ? '#f87171' : '#4ade80';
   const fillGradientId = `grad_${id || 'spark'}_${isRisk ? 'risk' : 'ok'}`;
 
   return (
     <svg className="spark" viewBox={`0 0 ${w} ${h}`}>
       <defs>
         <linearGradient id={fillGradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={strokeColor} stopOpacity="0.32" />
+          <stop offset="0%" stopColor={strokeColor} stopOpacity="0.14" />
           <stop offset="100%" stopColor={strokeColor} stopOpacity="0.0" />
         </linearGradient>
       </defs>
       <path d={areaPath} fill={`url(#${fillGradientId})`} />
-      <path d={linePath} fill="none" stroke={strokeColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={lastPoint.x} cy={lastPoint.y} r="3.5" fill={strokeColor} />
+      <path d={linePath} fill="none" stroke={strokeColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lastPoint.x} cy={lastPoint.y} r="2.75" fill={strokeColor} />
     </svg>
   );
 }
@@ -248,10 +248,8 @@ export default function Home() {
         <div className="page-head">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
-              <h1 style={{ marginBottom: 0 }}>
-                Customer Health &amp; <span className="grad-text">Retention Loop</span>
-              </h1>
-              <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.12)', color: 'var(--accent)', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
+              <h1 style={{ marginBottom: 0 }}>Customer Health &amp; Retention Loop</h1>
+              <span className="badge" style={{ color: 'var(--muted)' }}>
                 {t.company}
               </span>
             </div>
@@ -368,7 +366,8 @@ export default function Home() {
           <h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span>Monitored accounts ({rows.length})</span>
-              <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.12)', color: 'var(--accent)', border: '1px solid rgba(139, 92, 246, 0.28)' }}>
+              <span className="badge" style={{ color: 'var(--muted)' }}>
+                <span className="badge-dot" style={{ color: 'var(--accent)' }} />
                 Alerts go to {t.channel}
               </span>
             </div>
@@ -484,7 +483,8 @@ export default function Home() {
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 10 }}>
             <h2 style={{ margin: 0 }}>How the loop protects your revenue</h2>
-            <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--ok)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+            <span className="badge" style={{ color: 'var(--muted)' }}>
+              <span className="badge-dot" style={{ color: 'var(--ok)' }} />
               Fully automatic · per-tenant isolated
             </span>
           </div>
