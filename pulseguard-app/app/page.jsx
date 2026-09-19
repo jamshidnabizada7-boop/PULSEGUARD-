@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { TENANTS, getTenant, tenantFromSearch } from '../lib/tenants';
 import InfoDot from '../components/InfoDot';
 import {
@@ -45,6 +45,35 @@ function Spark({ points, isRisk, id }) {
   );
 }
 
+// Animates a number to its new value (400ms ease-out) — makes KPI flips feel alive on video.
+function CountUp({ value }) {
+  const [display, setDisplay] = useState(value);
+  const prevRef = useRef(value);
+
+  useEffect(() => {
+    const from = prevRef.current;
+    const to = value;
+    prevRef.current = value;
+    if (from === to || typeof from !== 'number' || typeof to !== 'number') {
+      setDisplay(to);
+      return;
+    }
+    const start = performance.now();
+    const dur = 450;
+    let raf;
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay(Math.round(from + (to - from) * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+
+  return <>{display}</>;
+}
+
 export default function Home() {
   const [tenant, setTenant] = useState('tenant-alpha');
   const [busy, setBusy] = useState(false);
@@ -53,6 +82,8 @@ export default function Home() {
   const [highlightedRow, setHighlightedRow] = useState(null);
   const [highlightType, setHighlightType] = useState('anomaly');
   const [welcomed, setWelcomed] = useState(true);
+  const [progress, setProgress] = useState(null);
+  const progressTimers = useRef([]);
 
   useEffect(() => {
     try {
@@ -112,6 +143,15 @@ export default function Home() {
     const dropPct = t.dropPct;
     const health = t.dropHealth;
 
+    // Narrate the real workflow steps while the run executes — mirrors what
+    // Fastn is actually doing (diagnose → CRM note → Slack alert).
+    setProgress(`Diagnosing ${primary.name}…`);
+    progressTimers.current.forEach(clearTimeout);
+    progressTimers.current = [
+      setTimeout(() => setProgress('Writing the CRM timeline note…'), 900),
+      setTimeout(() => setProgress(`Alerting ${t.channel}…`), 1900),
+    ];
+
     setAckedMap((m) => {
       const next = { ...m };
       delete next[`${tenant}:${primary.id}`];
@@ -136,6 +176,8 @@ export default function Home() {
       });
       const j = await res.json();
       if (j.ok) {
+        setProgress('Alert delivered');
+        setTimeout(() => setProgress(null), 1600);
         setToast(`Anomaly sent — PulseGuard is diagnosing ${primary.name} and alerting ${t.channel}`);
 
         if (typeof window !== 'undefined') {
@@ -157,9 +199,11 @@ export default function Home() {
           } catch {}
         }
       } else {
+        setProgress(null);
         setToast('Dispatch failed: ' + (j.error || res.status));
       }
     } catch (e) {
+      setProgress(null);
       setToast('Dispatch failed: ' + e.message);
     }
     setBusy(false);
@@ -284,7 +328,9 @@ export default function Home() {
                 <IconAlert size={15} />
               </span>
             </div>
-            <div className={`n ${atRisk > 0 ? 'risk' : 'ok'}`}>{atRisk}</div>
+            <div className={`n ${atRisk > 0 ? 'risk' : 'ok'}`}>
+              <CountUp value={atRisk} />
+            </div>
             <div className="sub-tag">
               {atRisk > 0 ? (
                 <>
@@ -313,7 +359,7 @@ export default function Home() {
                 <IconCheckCircle size={15} />
               </span>
             </div>
-            <div className="n ok">{rows.length - atRisk}</div>
+            <div className="n ok"><CountUp value={rows.length - atRisk} /></div>
             <div className="sub-tag">
               <span>Normal usage, no action needed</span>
             </div>
@@ -346,7 +392,7 @@ export default function Home() {
               </span>
             </div>
             <div className="n warn">
-              {t.avgHealth}
+              <CountUp value={t.avgHealth} />
               <span className="muted" style={{ fontSize: 15, fontWeight: 500 }}>/100</span>
             </div>
             <div className="sub-tag">
@@ -437,22 +483,26 @@ export default function Home() {
                         </div>
                       </td>
                       <td>
-                        {a.status === 'HIGH_RISK' ? (
-                          a.acknowledged ? (
-                            <span className="badge ack" title="A team member acknowledged this risk — the CRM was updated.">
-                              <span className="badge-dot" />
-                              HANDLED
-                            </span>
-                          ) : (
-                            <span className="badge risk" title="Weekly usage dropped past the alert line — CRM noted, Slack alerted.">
-                              <span className="badge-dot pulse" />
-                              NEEDS ATTENTION
-                            </span>
-                          )
+                        {isActiveRisk ? (
+                          <span className="badge risk" title="Weekly usage dropped past the alert line — CRM noted, Slack alerted.">
+                            <span className="badge-dot pulse" />
+                            NEEDS ATTENTION
+                          </span>
+                        ) : a.acknowledged ? (
+                          <span className="badge ack" title="A team member acknowledged this risk — the CRM was updated.">
+                            <span className="badge-dot" />
+                            HANDLED
+                          </span>
                         ) : (
                           <span className="badge healthy">
                             <span className="badge-dot" />
                             HEALTHY
+                          </span>
+                        )}
+                        {highlightedRow === a.id && progress && highlightType === 'anomaly' && (
+                          <span className="row-progress">
+                            <IconSpinner size={12} />
+                            {progress}
                           </span>
                         )}
                       </td>

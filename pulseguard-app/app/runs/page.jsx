@@ -380,24 +380,22 @@ export default function Runs() {
                         </td>
                         <td>
                           {stepList.length > 0 ? (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                              {stepList.map((st, idx) => (
-                                <span
-                                  key={idx}
-                                  className="mono"
-                                  style={{
-                                    fontSize: 11,
-                                    background: 'rgba(255, 255, 255, 0.035)',
-                                    padding: '3px 8px',
-                                    borderRadius: 6,
-                                    border: '1px solid rgba(255, 255, 255, 0.07)',
-                                    color: idx === 0 ? '#fafafa' : 'var(--muted)',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                >
-                                  {idx > 0 ? '→ ' : ''}{st}
-                                </span>
-                              ))}
+                            <div className="trace-stepper">
+                              {stepList.map((st, idx) => {
+                                const label = st.replace(/^→\s*/, '');
+                                const tone = /fail|error|blocked/i.test(label)
+                                  ? 'risk'
+                                  : /dedupe|idempot/i.test(label)
+                                  ? 'warn'
+                                  : 'ok';
+                                return (
+                                  <span key={idx} className={`trace-step mono ${tone}`} title={label}>
+                                    <span className="trace-dot" />
+                                    {label}
+                                    {idx < stepList.length - 1 && <span className="trace-line" />}
+                                  </span>
+                                );
+                              })}
                             </div>
                           ) : (
                             <span className="mono muted" style={{ fontSize: 11 }}>{r.steps}</span>

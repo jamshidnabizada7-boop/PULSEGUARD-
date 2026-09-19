@@ -986,6 +986,59 @@ input[type='range']::-moz-range-thumb:hover {
 .icon-chip.warn { color: var(--muted-dark); }
 .icon-chip.accent { color: var(--muted-dark); }
 
+/* Row progress (live workflow narration on the anomaly row) */
+.row-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--accent-light);
+  white-space: nowrap;
+}
+
+/* Run trace stepper — dots on a line */
+.trace-stepper {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.trace-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.trace-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex-shrink: 0;
+}
+
+.trace-step.warn .trace-dot {
+  background: var(--warn);
+}
+
+.trace-step.risk .trace-dot {
+  background: var(--risk);
+}
+
+.trace-line {
+  width: 16px;
+  height: 1px;
+  background: var(--line-strong);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
 /* ============ Info dots ============ */
 .info-dot {
   position: relative;

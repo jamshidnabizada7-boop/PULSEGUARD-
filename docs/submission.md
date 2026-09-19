@@ -91,20 +91,34 @@ PulseGuard implements true enterprise multi-tenancy:
 
 ## 4. Frontend Application: PulseGrid Analytics
 
-The frontend is a production-grade Next.js 14 application situated in `pulseguard-app`:
+The frontend is a production-grade Next.js 14 application situated in `pulseguard-app`, designed
+Cursor-style (flat near-black canvas, sidebar shell, plain-language UX) so a first-time viewer
+understands it in seconds:
 1. **Dynamic Customer Health Dashboard (`/`)**:
-   - Displays live account portfolios, ARR, 7-day health trend sparklines, and status badges (`HEALTHY`, `HIGH RISK`, `ACKNOWLEDGED`).
-   - Dynamic tenant switcher in `TopBar`: Instantly pivots between Tenant Alpha (Acme Corp) and Tenant Beta (Globex Exports) while preserving URL state and deep links.
-   - Anomaly Simulation Button: Triggers `/api/telemetry` which dispatches to Fastn with automatic fallback to simulated dispatch if offline, guaranteeing 100% test reliability.
-   - Quick Action: Acknowledge risk directly from the dashboard table, invoking `/api/ack`.
-2. **Embedded Integrations Panel (`/integrations`)**:
-   - Embeds Fastn Widget `wgt_fa0d339f81d4`.
-   - Production token-minting route (`POST /api/embed-token`) mints 8-hour tenant-scoped tokens server-side without leaking API keys to the browser.
-   - **Direct Iframe Fallback**: In the event that server-minted tokens are unavailable, seamlessly activates direct iframe embedding (`/api/v1/embed/iframe?widgetId=wgt_fa0d339f81d4&endOrgId=...`) with interactive connector previews.
-3. **Execution Runs & Activity Audit (`/runs`)**:
-   - Auto-refreshes every 5 seconds, displaying real execution traces with dynamic relative timestamps ("Just now", "45s ago").
-   - Filters executions by tenant (All / Alpha / Beta).
-   - Shows step traces (`dedupe-ok · table-ok · crm-note-ok · slack-card-ok`) mirroring the Fastn Activity Executions dashboard.
+   - KPI stat band (accounts at risk, healthy, revenue protected, avg health) with count-up animations.
+   - Monitored-accounts table: 7-day health sparklines, week-over-week delta chips, and plain-language
+     status badges (`NEEDS ATTENTION`, `HANDLED`, `HEALTHY`) — color is reserved for meaning.
+   - **Simulate Anomaly** dispatches real telemetry to Fastn (`/api/telemetry`, simulated-dispatch
+     fallback guarantees demo reliability) while the row narrates the live workflow steps
+     ("Diagnosing… → Writing the CRM note… → Alerting #pulseguard-alpha").
+   - Acknowledge Risk from the row → `/api/ack` → CRM updated, badge flips.
+   - Every technical term carries a clickable ⓘ that opens the assistant pre-asked.
+2. **PulseGuard Assistant (every page, docked right panel)**:
+   - LLM-powered (OpenAI-compatible endpoint, server-side key) with the full screen guide and live
+     tenant context injected; deterministic built-in responder as automatic fallback.
+   - **Acts, not just chats**: "Acknowledge the Acme Corp risk" executes the real
+     `pulseguard-ack-loop` Fastn workflow via `/api/ack` and syncs the dashboard live.
+3. **Embedded Integrations Panel (`/integrations`)**:
+   - Governed Widget view for HubSpot + Slack + threshold settings.
+   - **Tokenized raw embed**: `/api/embed-token` mints 8-hour tenant-scoped tokens server-side
+     (Fastn requires the tenant's end-org as `x-org-id`; response unwrapped from its `data` envelope)
+     and the raw platform iframe loads signed-in — with a graceful, professional fallback if minting fails.
+4. **Execution Runs & Activity Audit (`/runs`)**:
+   - Auto-refreshes every 5 seconds; human outcome badges (Alert sent / Duplicate blocked / Risk handled
+     / All good) with the raw Fastn status preserved as tooltips.
+   - Run traces rendered as a connected stepper (dot → line → dot) proving end-to-end execution.
+   - Tenant filter (All / Alpha / Beta) and a collapsed "Platform details" section holding every
+     technical ID so end users never see a UUID unless they go looking.
 
 ---
 
@@ -148,17 +162,19 @@ During the development and testing of PulseGuard over the Fastn platform, our te
 
 ---
 
-## 7. Demo Video Script Outline (2:30 Duration)
+## 7. Demo Video (≤ 2:00 — submission cap)
 
-| Timing | Visual Scene | Audio Voiceover Script | Rubric Criteria |
-|---|---|---|---|
-| **0:00 – 0:20** | Problem slide: SaaS churn curve & disconnected silos | *"B2B SaaS churn is silent. Customers don't cancel overnight; their usage fades weeks earlier. But that signal dies in analytics dashboards while Customer Success works in HubSpot and Slack. Bridging that gap usually requires weeks of engineering."* | Problem & Value Proposition |
-| **0:20 – 0:45** | PulseGrid Analytics dashboard (`/`): Health scores, Sparklines | *"Meet PulseGrid Analytics, powered by PulseGuard on Fastn. In minutes, we've transformed product telemetry into an autonomous, governed retention engine."* | Application Quality & Polish |
-| **0:45 – 1:05** | Integrations page (`/integrations`) + Fastn widget `wgt_fa0d339f81d4` | *"Customers connect their own CRM and messaging through the embedded Fastn widget. Watch our multi-tenant isolation: Tenant Alpha connects to Acme Corp's HubSpot and alerts #pulseguard-alpha. Tenant Beta is completely isolated."* | Fastn Embedding & Multi-Tenancy |
-| **1:05 – 1:35** | Click **Simulate anomaly** → Slack card arrives → HubSpot note | *"Watch live: usage drops 52%. Fastn's Risk Engine enriches the account via the Unified CRM API, writes a diagnosis directly onto the HubSpot timeline, and posts an interactive card to Slack in under 3 seconds."* | End-to-End Workflow Execution |
-| **1:35 – 1:55** | Click **Acknowledge** in Slack / UI → Status flips | *"And it's a closed loop: when CS acknowledges the risk, Fastn's Ack Loop workflow updates the CRM timeline and flips the dashboard badge. Not just passive alerts—actuated customer retention."* | Closed-Loop Actuation |
-| **1:55 – 2:15** | Terminal showing MCP gateway sessions and tooling | *"Every workflow, connector, and widget was built by AI agents through Fastn's MCP gateway—governed, auditable, and driven by 117 platform tools."* | Agent & MCP Integration |
-| **2:15 – 2:30** | Fastn Activity Executions trace table | *"Every execution is tracked on Fastn's governed runtime. PulseGuard: from raw telemetry to retained customers, powered by Fastn."* | Governance & Platform Rubric |
+Final shot-by-shot script lives in [`demo-video-script.md`](demo-video-script.md). Structure:
+
+| Timing | Visual | Rubric |
+|---|---|---|
+| **0:00 – 0:10** | Problem slide: silent churn | Problem & Value |
+| **0:10 – 0:30** | Dashboard: KPI band, red NEEDS ATTENTION row | Application Quality |
+| **0:30 – 0:55** | Simulate Anomaly → live row narration → Slack card lands | Fastn Embedding & E2E Workflow |
+| **0:55 – 1:10** | HubSpot timeline: automated diagnosis note | Unified CRM API |
+| **1:10 – 1:40** | **AI assistant**: prioritise from live data → acknowledge the risk *from chat* → dashboard syncs | Creativity + MCP + Closed Loop |
+| **1:40 – 1:50** | Tenant switch → Beta isolation; tokenized Fastn embed | Multi-Tenancy |
+| **1:50 – 2:00** | Execution traces + MCP agent-build proof | Governance & Platform |
 
 ---
 
@@ -184,13 +200,20 @@ The `evidence/` directory contains complete documentation, execution traces, and
 git clone https://github.com/jamshidnabizada7-boop/PULSEGUARD-.git
 cd PULSEGUARD-/pulseguard-app
 
-# 2. Build & run production server
-npm.cmd run build
-npm.cmd run start
+# 2. Configure secrets (gitignored)
+#    .env.local: FASTN_API_KEY, FASTN_ORG_ID, FASTN_HOST, FASTN_APP_URL,
+#                LLM_API_KEY (OpenRouter), LLM_MODEL, APP_BASE_URL
+
+# 3. Build & run production server
+npm run build
+npm run start
 # Open http://localhost:3210
 ```
 
-1. Navigate to `/` → Click `⚡ Simulate anomaly (Acme Corp)`.
-2. Inspect the toast, table update, and `/runs` stream.
-3. Switch tenant to `Tenant Beta — Globex Exports` in TopBar → Verify isolation.
-4. Navigate to `/integrations` → Observe embedded widget `wgt_fa0d339f81d4`.
+1. `/` → dismiss the welcome strip → press **Simulate Anomaly** → watch the row narrate the
+   workflow steps and the Slack card land in `#pulseguard-alpha`.
+2. Open the **Assistant** (bottom-right) → ask *"Which account needs attention?"* → then
+   *"Acknowledge the Acme Corp risk"* → the dashboard syncs live (real Fastn execution).
+3. Switch workspace to **Tenant Beta — Globex Exports** in the sidebar → verify isolation.
+4. `/integrations` → **Live embed → Raw Platform Iframe** → the tokenized Fastn panel signs in
+   automatically; **Activity** → expand **Platform details** for every workflow/widget ID.
