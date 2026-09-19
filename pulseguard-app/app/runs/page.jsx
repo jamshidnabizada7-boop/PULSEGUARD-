@@ -284,24 +284,24 @@ export default function Runs() {
             </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', background: 'rgba(14, 22, 38, 0.8)', borderRadius: 10, padding: 3, border: '1px solid var(--line)' }}>
+              <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 10, padding: 3, border: '1px solid var(--line)' }}>
                 <button
                   className={`btn ghost ${tenant === 'all' ? 'active' : ''}`}
-                  style={{ padding: '5px 12px', fontSize: 12, border: 'none', background: tenant === 'all' ? 'rgba(30, 41, 59, 0.9)' : 'transparent', color: tenant === 'all' ? '#fff' : 'var(--muted)' }}
+                  style={{ padding: '5px 12px', fontSize: 12, border: 'none', background: tenant === 'all' ? 'rgba(255, 255, 255, 0.08)' : 'transparent', color: tenant === 'all' ? '#fff' : 'var(--muted)' }}
                   onClick={() => handleTenantChange('all')}
                 >
                   All Tenants
                 </button>
                 <button
                   className={`btn ghost ${tenant === 'tenant-alpha' ? 'active' : ''}`}
-                  style={{ padding: '5px 12px', fontSize: 12, border: 'none', background: tenant === 'tenant-alpha' ? 'rgba(30, 41, 59, 0.9)' : 'transparent', color: tenant === 'tenant-alpha' ? 'var(--accent)' : 'var(--muted)' }}
+                  style={{ padding: '5px 12px', fontSize: 12, border: 'none', background: tenant === 'tenant-alpha' ? 'rgba(139, 92, 246, 0.16)' : 'transparent', color: tenant === 'tenant-alpha' ? 'var(--accent)' : 'var(--muted)' }}
                   onClick={() => handleTenantChange('tenant-alpha')}
                 >
                   Tenant Alpha
                 </button>
                 <button
                   className={`btn ghost ${tenant === 'tenant-beta' ? 'active' : ''}`}
-                  style={{ padding: '5px 12px', fontSize: 12, border: 'none', background: tenant === 'tenant-beta' ? 'rgba(30, 41, 59, 0.9)' : 'transparent', color: tenant === 'tenant-beta' ? 'var(--accent)' : 'var(--muted)' }}
+                  style={{ padding: '5px 12px', fontSize: 12, border: 'none', background: tenant === 'tenant-beta' ? 'rgba(167, 139, 250, 0.12)' : 'transparent', color: tenant === 'tenant-beta' ? 'var(--accent2)' : 'var(--muted)' }}
                   onClick={() => handleTenantChange('tenant-beta')}
                 >
                   Tenant Beta
@@ -363,9 +363,9 @@ export default function Runs() {
                               style={{
                                 fontSize: 10,
                                 padding: '2px 8px',
-                                background: isAlpha ? 'rgba(6, 182, 212, 0.12)' : 'rgba(99, 102, 241, 0.12)',
+                                background: isAlpha ? 'rgba(139, 92, 246, 0.12)' : 'rgba(167, 139, 250, 0.1)',
                                 color: isAlpha ? 'var(--accent)' : 'var(--accent2)',
-                                border: isAlpha ? '1px solid rgba(6, 182, 212, 0.25)' : '1px solid rgba(99, 102, 241, 0.25)',
+                                border: isAlpha ? '1px solid rgba(139, 92, 246, 0.28)' : '1px solid rgba(167, 139, 250, 0.25)',
                               }}
                             >
                               {isAlpha ? 'Alpha' : 'Beta'}
@@ -401,11 +401,11 @@ export default function Runs() {
                                   className="mono"
                                   style={{
                                     fontSize: 11,
-                                    background: 'rgba(15, 23, 42, 0.85)',
+                                    background: 'rgba(255, 255, 255, 0.035)',
                                     padding: '3px 8px',
                                     borderRadius: 6,
-                                    border: '1px solid var(--line)',
-                                    color: idx === 0 ? '#f8fafc' : 'var(--muted)',
+                                    border: '1px solid rgba(255, 255, 255, 0.07)',
+                                    color: idx === 0 ? '#fafafa' : 'var(--muted)',
                                     whiteSpace: 'nowrap'
                                   }}
                                 >

@@ -101,9 +101,9 @@ export default function TopBar({ active = '/', tenant = 'tenant-alpha', onTenant
           </span>
 
           <span className="badge" style={{
-            background: 'rgba(6, 182, 212, 0.1)',
+            background: 'rgba(139, 92, 246, 0.1)',
             color: 'var(--accent)',
-            border: '1px solid rgba(6, 182, 212, 0.25)',
+            border: '1px solid rgba(139, 92, 246, 0.28)',
             fontSize: 11.5,
             padding: '3px 10px'
           }}>

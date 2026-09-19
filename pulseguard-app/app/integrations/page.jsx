@@ -91,7 +91,7 @@ export default function Integrations() {
         </div>
 
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', background: 'rgba(14, 21, 36, 0.7)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', background: 'rgba(255, 255, 255, 0.025)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             <div>
               <strong style={{ fontSize: 15 }}>Connect your stack</strong>
               <span className="badge warn" style={{ marginLeft: 10 }}>widget · wgt_fa0d339f81d4</span>
@@ -101,7 +101,7 @@ export default function Integrations() {
             </div>
           </div>
 
-          <div style={{ minHeight: 620, background: '#0b1120' }}>
+          <div style={{ minHeight: 620, background: '#0a0a0c' }}>
             <WidgetMount tenant={tenant} currentConfig={current} />
           </div>
 
@@ -119,7 +119,7 @@ export default function Integrations() {
               <span>Connection Status &amp; Multi-Tenant Isolation</span>
               <span className="badge ack">Zero-Leak Boundary</span>
             </div>
-            <span className="badge" style={{ background: 'rgba(6, 182, 212, 0.12)', color: 'var(--accent)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+            <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.12)', color: 'var(--accent)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
               Managed by Fastn
             </span>
           </h2>
@@ -253,7 +253,7 @@ function WidgetMount({ tenant, currentConfig }) {
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '12px 20px',
-        background: 'rgba(11, 15, 25, 0.95)',
+        background: 'rgba(12, 12, 14, 0.95)',
         borderBottom: '1px solid var(--line)',
         flexWrap: 'wrap',
         gap: 10,
@@ -285,7 +285,7 @@ function WidgetMount({ tenant, currentConfig }) {
               padding: '5px 12px',
               fontSize: 12,
               textDecoration: 'none',
-              background: 'rgba(34, 211, 238, 0.12)',
+              background: 'rgba(167, 139, 250, 0.12)',
               borderColor: 'var(--accent)',
               color: 'var(--accent)',
               fontWeight: 600,
@@ -301,10 +301,10 @@ function WidgetMount({ tenant, currentConfig }) {
               padding: '5px 14px',
               fontSize: 12,
               borderColor: viewMode === 'governed' ? 'var(--accent)' : 'var(--line)',
-              background: viewMode === 'governed' ? 'rgba(6, 182, 212, 0.16)' : 'transparent',
+              background: viewMode === 'governed' ? 'rgba(139, 92, 246, 0.16)' : 'transparent',
               color: viewMode === 'governed' ? 'var(--accent)' : 'var(--muted)',
               fontWeight: viewMode === 'governed' ? 700 : 500,
-              boxShadow: viewMode === 'governed' ? '0 0 12px rgba(6, 182, 212, 0.25)' : 'none',
+              boxShadow: viewMode === 'governed' ? '0 0 12px rgba(139, 92, 246, 0.25)' : 'none',
             }}
             onClick={() => setViewMode('governed')}
           >
@@ -317,10 +317,10 @@ function WidgetMount({ tenant, currentConfig }) {
               padding: '5px 14px',
               fontSize: 12,
               borderColor: viewMode === 'iframe' ? 'var(--accent)' : 'var(--line)',
-              background: viewMode === 'iframe' ? 'rgba(6, 182, 212, 0.16)' : 'transparent',
+              background: viewMode === 'iframe' ? 'rgba(139, 92, 246, 0.16)' : 'transparent',
               color: viewMode === 'iframe' ? 'var(--accent)' : 'var(--muted)',
               fontWeight: viewMode === 'iframe' ? 700 : 500,
-              boxShadow: viewMode === 'iframe' ? '0 0 12px rgba(6, 182, 212, 0.25)' : 'none',
+              boxShadow: viewMode === 'iframe' ? '0 0 12px rgba(139, 92, 246, 0.25)' : 'none',
             }}
             onClick={() => {
               setViewMode('iframe');
@@ -336,10 +336,10 @@ function WidgetMount({ tenant, currentConfig }) {
               padding: '5px 14px',
               fontSize: 12,
               borderColor: viewMode === 'specs' ? 'var(--accent)' : 'var(--line)',
-              background: viewMode === 'specs' ? 'rgba(6, 182, 212, 0.16)' : 'transparent',
+              background: viewMode === 'specs' ? 'rgba(139, 92, 246, 0.16)' : 'transparent',
               color: viewMode === 'specs' ? 'var(--accent)' : 'var(--muted)',
               fontWeight: viewMode === 'specs' ? 700 : 500,
-              boxShadow: viewMode === 'specs' ? '0 0 12px rgba(6, 182, 212, 0.25)' : 'none',
+              boxShadow: viewMode === 'specs' ? '0 0 12px rgba(139, 92, 246, 0.25)' : 'none',
             }}
             onClick={() => setViewMode('specs')}
           >
@@ -350,10 +350,10 @@ function WidgetMount({ tenant, currentConfig }) {
 
       {/* VIEW 1: GOVERNED FASTN WIDGET (Live Interactive Console) */}
       {viewMode === 'governed' && (
-        <div style={{ padding: 24, flex: 1, overflowY: 'auto', background: '#0b1120' }}>
+        <div style={{ padding: 24, flex: 1, overflowY: 'auto', background: '#0a0a0c' }}>
           {/* Widget Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9))',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))',
             border: '1px solid var(--line)',
             borderRadius: 12,
             padding: '18px 20px',
@@ -369,7 +369,7 @@ function WidgetMount({ tenant, currentConfig }) {
                 width: 44,
                 height: 44,
                 borderRadius: 10,
-                background: 'linear-gradient(135deg, #22d3ee, #6366f1)',
+                background: 'linear-gradient(135deg, #22d3ee, #8b5cf6)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -396,7 +396,7 @@ function WidgetMount({ tenant, currentConfig }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn ghost"
-                style={{ padding: '6px 14px', fontSize: 12, color: 'var(--accent)', borderColor: 'rgba(34, 211, 238, 0.4)' }}
+                style={{ padding: '6px 14px', fontSize: 12, color: 'var(--accent)', borderColor: 'rgba(167, 139, 250, 0.4)' }}
                 title="Open installation console in Fastn"
               >
                 ↗ Fastn Installation Portal
@@ -418,7 +418,7 @@ function WidgetMount({ tenant, currentConfig }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 18, marginBottom: 20 }}>
             {/* HubSpot Connector Card */}
             <div style={{
-              background: 'linear-gradient(180deg, #131b2e 0%, #0e1526 100%)',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.015) 100%)',
               border: '1px solid var(--line)',
               borderRadius: 12,
               padding: 20,
@@ -456,7 +456,7 @@ function WidgetMount({ tenant, currentConfig }) {
                 </p>
 
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.6)',
+                  background: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid rgba(255, 255, 255, 0.05)',
                   borderRadius: 8,
                   padding: '10px 14px',
@@ -489,7 +489,7 @@ function WidgetMount({ tenant, currentConfig }) {
                     padding: '7px 14px',
                     fontSize: 12,
                     color: 'var(--accent)',
-                    borderColor: 'rgba(34, 211, 238, 0.3)',
+                    borderColor: 'rgba(167, 139, 250, 0.3)',
                     textDecoration: 'none',
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -504,7 +504,7 @@ function WidgetMount({ tenant, currentConfig }) {
 
             {/* Slack Connector Card */}
             <div style={{
-              background: 'linear-gradient(180deg, #131b2e 0%, #0e1526 100%)',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.015) 100%)',
               border: '1px solid var(--line)',
               borderRadius: 12,
               padding: 20,
@@ -542,7 +542,7 @@ function WidgetMount({ tenant, currentConfig }) {
                 </p>
 
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.6)',
+                  background: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid rgba(255, 255, 255, 0.05)',
                   borderRadius: 8,
                   padding: '10px 14px',
@@ -575,7 +575,7 @@ function WidgetMount({ tenant, currentConfig }) {
                     padding: '7px 14px',
                     fontSize: 12,
                     color: 'var(--accent)',
-                    borderColor: 'rgba(34, 211, 238, 0.3)',
+                    borderColor: 'rgba(167, 139, 250, 0.3)',
                     textDecoration: 'none',
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -683,11 +683,11 @@ function WidgetMount({ tenant, currentConfig }) {
 
       {/* VIEW 2: LIVE IFRAME EMBED (Embedded Fastn Integration Hub) */}
       {viewMode === 'iframe' && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0a0f1d' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0a0a0c' }}>
           {/* Iframe Controls Toolbar */}
           <div style={{
             padding: '10px 18px',
-            background: 'rgba(15, 23, 42, 0.95)',
+            background: 'rgba(255, 255, 255, 0.03)',
             borderBottom: '1px solid var(--line)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -699,7 +699,7 @@ function WidgetMount({ tenant, currentConfig }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span className="badge ack" style={{ fontSize: 11 }}>Fastn Integration Hub</span>
-              <span className="mono" style={{ fontSize: 11, color: '#94a3b8' }}>
+              <span className="mono" style={{ fontSize: 11, color: '#a1a1aa' }}>
                 Tenant: {currentConfig.endOrgId}
               </span>
               <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: 2, border: '1px solid var(--line)' }}>
@@ -711,7 +711,7 @@ function WidgetMount({ tenant, currentConfig }) {
                     fontSize: 11,
                     borderRadius: 4,
                     background: iframeSubMode === 'hub' ? 'var(--accent)' : 'transparent',
-                    color: iframeSubMode === 'hub' ? '#04101c' : 'var(--muted)',
+                    color: iframeSubMode === 'hub' ? '#ffffff' : 'var(--muted)',
                     fontWeight: iframeSubMode === 'hub' ? 700 : 400,
                     cursor: 'pointer'
                   }}
@@ -726,7 +726,7 @@ function WidgetMount({ tenant, currentConfig }) {
                     fontSize: 11,
                     borderRadius: 4,
                     background: iframeSubMode === 'raw' ? 'var(--accent)' : 'transparent',
-                    color: iframeSubMode === 'raw' ? '#04101c' : 'var(--muted)',
+                    color: iframeSubMode === 'raw' ? '#ffffff' : 'var(--muted)',
                     fontWeight: iframeSubMode === 'raw' ? 700 : 400,
                     cursor: 'pointer'
                   }}
@@ -753,7 +753,7 @@ function WidgetMount({ tenant, currentConfig }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn ghost"
-                style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)', borderColor: 'rgba(34, 211, 238, 0.4)' }}
+                style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)', borderColor: 'rgba(167, 139, 250, 0.4)' }}
               >
                 ↗ Open in Fastn Console
               </a>
@@ -762,12 +762,12 @@ function WidgetMount({ tenant, currentConfig }) {
 
           {/* SUBMODE A: INTERACTIVE HUB FRAME */}
           {iframeSubMode === 'hub' && (
-            <div style={{ flex: 1, padding: 24, overflowY: 'auto', background: '#0b1120' }}>
+            <div style={{ flex: 1, padding: 24, overflowY: 'auto', background: '#0a0a0c' }}>
               {/* Fastn Hub Frame Canvas */}
               <div style={{
                 maxWidth: 900,
                 margin: '0 auto',
-                background: '#0e1628',
+                background: '#111113',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: 12,
                 overflow: 'hidden',
@@ -776,7 +776,7 @@ function WidgetMount({ tenant, currentConfig }) {
                 {/* Frame Header Bar */}
                 <div style={{
                   padding: '16px 20px',
-                  background: 'rgba(15, 23, 42, 0.8)',
+                  background: 'rgba(255, 255, 255, 0.03)',
                   borderBottom: '1px solid var(--line)',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -795,13 +795,13 @@ function WidgetMount({ tenant, currentConfig }) {
                   </div>
 
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, color: '#94a3b8' }}>Filter:</span>
+                    <span style={{ fontSize: 11, color: '#a1a1aa' }}>Filter:</span>
                     {['all', 'installed', 'available'].map((mode) => (
                       <button
                         key={mode}
                         onClick={() => setConnectorFilter(mode)}
                         style={{
-                          background: connectorFilter === mode ? 'rgba(34, 211, 238, 0.15)' : 'transparent',
+                          background: connectorFilter === mode ? 'rgba(167, 139, 250, 0.15)' : 'transparent',
                           color: connectorFilter === mode ? 'var(--accent)' : 'var(--muted)',
                           border: connectorFilter === mode ? '1px solid var(--accent)' : '1px solid var(--line)',
                           borderRadius: 6,
@@ -820,13 +820,13 @@ function WidgetMount({ tenant, currentConfig }) {
                 {/* Tenant Scope Notification */}
                 <div style={{
                   padding: '10px 20px',
-                  background: 'rgba(34, 211, 238, 0.05)',
-                  borderBottom: '1px solid rgba(34, 211, 238, 0.12)',
+                  background: 'rgba(167, 139, 250, 0.05)',
+                  borderBottom: '1px solid rgba(167, 139, 250, 0.12)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   fontSize: 12,
-                  color: '#94a3b8'
+                  color: '#a1a1aa'
                 }}>
                   <span>
                     Scoped to Tenant: <strong style={{ color: '#e2e8f0' }}>{currentConfig.name}</strong> (<code className="mono">{currentConfig.endOrgId}</code>)
@@ -839,7 +839,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   {/* HubSpot Item */}
                   {(connectorFilter === 'all' || connectorFilter === 'installed') && (
                     <div style={{
-                      background: 'rgba(15, 23, 42, 0.6)',
+                      background: 'rgba(255, 255, 255, 0.03)',
                       border: '1px solid var(--line)',
                       borderRadius: 10,
                       padding: '16px 18px',
@@ -889,7 +889,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   {/* Slack Item */}
                   {(connectorFilter === 'all' || connectorFilter === 'installed') && (
                     <div style={{
-                      background: 'rgba(15, 23, 42, 0.6)',
+                      background: 'rgba(255, 255, 255, 0.03)',
                       border: '1px solid var(--line)',
                       borderRadius: 10,
                       padding: '16px 18px',
@@ -957,7 +957,7 @@ function WidgetMount({ tenant, currentConfig }) {
                 {/* Frame Footer */}
                 <div style={{
                   padding: '12px 20px',
-                  background: 'rgba(11, 15, 25, 0.8)',
+                  background: 'rgba(12, 12, 14, 0.8)',
                   borderTop: '1px solid var(--line)',
                   fontSize: 11.5,
                   color: 'var(--muted)',
@@ -983,13 +983,13 @@ function WidgetMount({ tenant, currentConfig }) {
 
           {/* SUBMODE B: RAW PLATFORM IFRAME */}
           {iframeSubMode === 'raw' && (
-            <div style={{ flex: 1, position: 'relative', width: '100%', minHeight: 560, background: '#0b1120' }}>
+            <div style={{ flex: 1, position: 'relative', width: '100%', minHeight: 560, background: '#0a0a0c' }}>
               <div style={{
                 padding: '8px 18px',
-                background: 'rgba(30, 41, 59, 0.5)',
+                background: 'rgba(255, 255, 255, 0.03)',
                 borderBottom: '1px solid var(--line)',
                 fontSize: 11.5,
-                color: '#94a3b8'
+                color: '#a1a1aa'
               }}>
                 Target: <code className="mono" style={{ color: 'var(--accent)' }}>{directIframeSrc}</code> · CSP <code>frame-ancestors *</code>
               </div>
@@ -1002,7 +1002,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: '#0b1120',
+                  background: '#0a0a0c',
                   color: 'var(--muted)',
                   gap: 12,
                   zIndex: 2,
@@ -1028,7 +1028,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   width: '100%',
                   height: 'calc(100% - 35px)',
                   border: 'none',
-                  background: '#0b1120',
+                  background: '#0a0a0c',
                   display: 'block',
                 }}
                 allow="clipboard-write"
@@ -1041,8 +1041,8 @@ function WidgetMount({ tenant, currentConfig }) {
 
       {/* VIEW 3: CONNECTOR SPECS & EMBED CODE */}
       {viewMode === 'specs' && (
-        <div style={{ padding: 24, flex: 1, overflowY: 'auto', background: '#0d131f' }}>
-          <h3 style={{ fontSize: 16, marginBottom: 6, color: '#e5edf8' }}>
+        <div style={{ padding: 24, flex: 1, overflowY: 'auto', background: '#0c0c0e' }}>
+          <h3 style={{ fontSize: 16, marginBottom: 6, color: '#f4f4f5' }}>
             Fastn Governed Widget Specification: PulseGuard Integrations
           </h3>
           <p className="muted" style={{ fontSize: 13, marginBottom: 20 }}>
@@ -1097,7 +1097,7 @@ function WidgetMount({ tenant, currentConfig }) {
               </button>
             </div>
             <pre style={{
-              background: '#070b14',
+              background: '#08080a',
               border: '1px solid var(--line)',
               borderRadius: 8,
               padding: 14,

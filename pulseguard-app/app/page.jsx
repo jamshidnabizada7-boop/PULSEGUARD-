@@ -228,8 +228,8 @@ export default function Home() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <h1>Customer Health &amp; Retention Loop</h1>
-              <span className="badge" style={{ background: 'rgba(6, 182, 212, 0.12)', color: 'var(--accent)', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
+              <h1 style={{ marginBottom: 0 }}>Customer Health &amp; <span className="grad-text">Retention Loop</span></h1>
+              <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.12)', color: 'var(--accent)', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
                 {currentPortfolio.company}
               </span>
             </div>
@@ -238,13 +238,13 @@ export default function Home() {
             </p>
           </div>
 
-          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div className="mono" style={{ fontSize: 12, color: 'var(--muted)' }}>
-              Fastn Org: <span style={{ color: 'var(--accent)', fontWeight: 600 }}>personal_dc05...ba84</span>
-            </div>
-            <div className="mono" style={{ fontSize: 12, color: 'var(--muted)' }}>
-              End-Org: <span style={{ color: 'var(--text)', fontWeight: 600 }}>{currentPortfolio.endOrgId}</span>
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+            <span className="env-chip">
+              Fastn Org: <strong>personal_dc05...ba84</strong>
+            </span>
+            <span className="env-chip">
+              End-Org: <strong>{currentPortfolio.endOrgId}</strong>
+            </span>
           </div>
         </div>
 
@@ -330,7 +330,7 @@ export default function Home() {
               <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent2)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
                 Alert Target: {currentPortfolio.channel}
               </span>
-              <span className="badge" style={{ background: 'rgba(6, 182, 212, 0.12)', color: 'var(--accent)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+              <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.12)', color: 'var(--accent)', border: '1px solid rgba(139, 92, 246, 0.28)' }}>
                 Threshold: {currentPortfolio.threshold}% WoW
               </span>
             </div>
@@ -371,6 +371,10 @@ export default function Home() {
                 {rows.map((a) => {
                   const isHighRisk = a.status === 'HIGH_RISK';
                   const currentScore = a.trend[a.trend.length - 1];
+                  const prevScore = a.trend[a.trend.length - 2];
+                  const deltaPct = prevScore ? Math.round(((currentScore - prevScore) / prevScore) * 100) : 0;
+                  const deltaClass = deltaPct <= -5 ? 'down' : deltaPct >= 5 ? 'up' : 'flat';
+                  const isActiveRisk = isHighRisk && !a.acknowledged;
 
                   return (
                     <tr
@@ -402,13 +406,16 @@ export default function Home() {
                       </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <Spark points={a.trend} isRisk={isHighRisk && !a.acknowledged} id={a.id} />
+                          <Spark points={a.trend} isRisk={isActiveRisk} id={a.id} />
                           <span className="mono" style={{
-                            fontWeight: 700,
+                            fontWeight: 600,
                             fontSize: 13,
-                            color: isHighRisk && !a.acknowledged ? 'var(--risk)' : 'var(--ok)'
+                            color: isActiveRisk ? 'var(--risk)' : 'var(--ok)'
                           }}>
                             {currentScore}
+                          </span>
+                          <span className={`delta ${deltaClass}`}>
+                            {deltaPct < 0 ? '▾' : '▴'} {Math.abs(deltaPct)}% WoW
                           </span>
                         </div>
                       </td>
@@ -440,8 +447,8 @@ export default function Home() {
                               padding: '6px 14px',
                               fontSize: 12,
                               color: '#fff',
-                              background: 'rgba(6, 182, 212, 0.12)',
-                              borderColor: 'rgba(6, 182, 212, 0.4)'
+                              background: 'rgba(139, 92, 246, 0.14)',
+                              borderColor: 'rgba(139, 92, 246, 0.45)'
                             }}
                             onClick={() => acknowledge(a.id)}
                           >
