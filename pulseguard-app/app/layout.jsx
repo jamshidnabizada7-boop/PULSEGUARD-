@@ -1,8 +1,17 @@
-import TopBar from './TopBar';
+import './globals.css';
+
+export const metadata = {
+  title: 'PulseGuard — Autonomous SaaS Retention & Churn Prevention',
+  description: 'Closed-loop multi-tenant customer health and autonomous churn remediation governed by Fastn runtime.',
+};
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body>{children}</body>
     </html>
   );

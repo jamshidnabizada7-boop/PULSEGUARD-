@@ -113,39 +113,66 @@ export default function Integrations() {
 
         <div className="card">
           <h2>
-            <span>Connection status &amp; isolation</span>
-            <span className="badge ack">Isolated per tenant</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span>Connection Status &amp; Multi-Tenant Isolation</span>
+              <span className="badge ack">Zero-Leak Boundary</span>
+            </div>
+            <span className="badge" style={{ background: 'rgba(6, 182, 212, 0.12)', color: 'var(--accent)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+              Managed by Fastn
+            </span>
           </h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Connector</th>
-                <th>Target Object / Scope</th>
-                <th>Tenant Channel / Company</th>
-                <th>Installation Ref</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>HubSpot</strong></td>
-                <td>Unified CRM API · Company Timeline Notes</td>
-                <td><span className="mono">{current.hubspotCompany}</span></td>
-                <td><span className="mono muted">{current.installationId}</span></td>
-                <td><span className="badge ack">ACTIVE</span></td>
-              </tr>
-              <tr>
-                <td><strong>Slack</strong></td>
-                <td>Interactive Churn Risk Cards</td>
-                <td><strong style={{ color: 'var(--accent)' }}>{current.slackChannel}</strong></td>
-                <td><span className="mono muted">{current.installationId}</span></td>
-                <td><span className="badge ack">ACTIVE</span></td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Connector</th>
+                  <th>Target Object / Scope</th>
+                  <th>Tenant Channel / Company</th>
+                  <th>Installation Ref</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 22, height: 22, borderRadius: 5, background: '#ff7a59', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 'bold' }}>H</span>
+                      <strong>HubSpot CRM</strong>
+                    </div>
+                  </td>
+                  <td>Unified CRM API · Company Timeline Notes</td>
+                  <td><span className="mono" style={{ color: '#fff' }}>{current.hubspotCompany}</span></td>
+                  <td><span className="mono muted">{current.installationId}</span></td>
+                  <td>
+                    <span className="badge ack">
+                      <span className="badge-dot" />
+                      ACTIVE
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 22, height: 22, borderRadius: 5, background: '#4a154b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 'bold' }}>#</span>
+                      <strong>Slack Alerts</strong>
+                    </div>
+                  </td>
+                  <td>Interactive Churn Risk Cards</td>
+                  <td><strong style={{ color: 'var(--accent)' }}>{current.slackChannel}</strong></td>
+                  <td><span className="mono muted">{current.installationId}</span></td>
+                  <td>
+                    <span className="badge ack">
+                      <span className="badge-dot" />
+                      ACTIVE
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           <p className="muted" style={{ marginTop: 14, fontSize: 13, lineHeight: 1.6 }}>
             Both connectors are authenticated via Fastn managed connections. When an anomaly triggers, the Risk Engine executes against
-            tenant <span className="mono">{current.endOrgId}</span>, ensuring Acme Corp alerts never leak into Globex Exports channels.
+            tenant <span className="mono" style={{ color: 'var(--accent)' }}>{current.endOrgId}</span>, ensuring Acme Corp alerts never leak into Globex Exports channels.
           </p>
         </div>
       </div>
