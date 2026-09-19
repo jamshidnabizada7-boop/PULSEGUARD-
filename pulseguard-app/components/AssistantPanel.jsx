@@ -9,9 +9,10 @@ const GREETING = {
     "Hi! I'm your PulseGuard assistant. Ask me what anything on this screen means, which account needs attention first, what just happened — or tell me to acknowledge a risk for you.",
 };
 
-function buildContext(tenantId, extraAcked) {
+function buildContext(tenantId, extraAcked, page) {
   const t = getTenant(tenantId);
   return {
+    page,
     tenant: t.id,
     company: t.company,
     channel: t.channel,
@@ -38,23 +39,50 @@ function readLastRun() {
 
 export default function AssistantPanel() {
   const [open, setOpen] = useState(false);
+  const [unseen, setUnseen] = useState(false);
   const [tenantId, setTenantId] = useState('tenant-alpha');
+  const [page, setPage] = useState('/');
   const [extraAcked, setExtraAcked] = useState({});
   const [msgs, setMsgs] = useState([GREETING]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const listRef = useRef(null);
   const inputRef = useRef(null);
+  const sendRef = useRef(null);
 
   useEffect(() => {
-    const sync = () => setTenantId(tenantFromSearch('tenant-alpha'));
+    const sync = () => {
+      setTenantId(tenantFromSearch('tenant-alpha'));
+      setPage(window.location.pathname || '/');
+    };
     sync();
+    try {
+      if (!localStorage.getItem('pulseguard_assistant_seen')) setUnseen(true);
+    } catch {}
     window.addEventListener('popstate', sync);
     window.addEventListener('tenantchange', sync);
     return () => {
       window.removeEventListener('popstate', sync);
       window.removeEventListener('tenantchange', sync);
     };
+  }, []);
+
+  function openPanel() {
+    setOpen(true);
+    setUnseen(false);
+    try {
+      localStorage.setItem('pulseguard_assistant_seen', '1');
+    } catch {}
+  }
+
+  useEffect(() => {
+    const onAsk = (e) => {
+      openPanel();
+      const q = e.detail?.question;
+      if (q) setTimeout(() => sendRef.current?.(q), 60);
+    };
+    window.addEventListener('pulseguard:ask', onAsk);
+    return () => window.removeEventListener('pulseguard:ask', onAsk);
   }, []);
 
   useEffect(() => {
@@ -87,7 +115,10 @@ export default function AssistantPanel() {
       const res = await fetch('/api/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, context: buildContext(tenantId, extraAcked) }),
+        body: JSON.stringify({
+          messages: next,
+          context: buildContext(tenantId, extraAcked, page),
+        }),
       });
       const j = await res.json();
 
@@ -143,13 +174,15 @@ export default function AssistantPanel() {
     setBusy(false);
   }
 
+  sendRef.current = send;
+
   return (
     <>
       <button
-        className={`assistant-fab ${open ? 'open' : ''}`}
-        onClick={() => setOpen((v) => !v)}
+        className={`assistant-fab ${open ? 'open' : ''} ${unseen && !open ? 'attention' : ''}`}
+        onClick={() => (open ? setOpen(false) : openPanel())}
         aria-label={open ? 'Close assistant' : 'Open assistant'}
-        title="PulseGuard Assistant"
+        title="PulseGuard Assistant — ask anything"
       >
         {open ? <IconX size={19} /> : <IconMessage size={19} />}
       </button>
@@ -215,7 +248,7 @@ export default function AssistantPanel() {
             </button>
           </div>
           <div className="assistant-foot">
-            <IconCheck size={11} /> Explains what you see · Acts through Fastn workflows
+            <IconCheck size={11} /> AI-powered explanations · Real actions through Fastn
           </div>
         </div>
       )}

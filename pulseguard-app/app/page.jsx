@@ -52,6 +52,20 @@ export default function Home() {
   const [ackedMap, setAckedMap] = useState({});
   const [highlightedRow, setHighlightedRow] = useState(null);
   const [highlightType, setHighlightType] = useState('anomaly');
+  const [welcomed, setWelcomed] = useState(true);
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem('pulseguard_welcomed')) setWelcomed(false);
+    } catch {}
+  }, []);
+
+  function dismissWelcome() {
+    setWelcomed(true);
+    try {
+      localStorage.setItem('pulseguard_welcomed', '1');
+    } catch {}
+  }
 
   const syncTenantFromUrl = useCallback(() => {
     setTenant(tenantFromSearch('tenant-alpha'));
@@ -198,6 +212,38 @@ export default function Home() {
   return (
     <main>
       <div className="wrap">
+        {/* First-visit orientation (Cursor-style: one sentence, two choices) */}
+        {!welcomed && (
+          <div className="welcome-strip">
+            <span className="welcome-icon">
+              <IconZap size={17} />
+            </span>
+            <div className="welcome-text">
+              <div className="welcome-title">
+                PulseGuard watches how customers use your product — and warns you before they churn
+              </div>
+              <div className="welcome-sub">
+                First time here? Every number and badge on this page explains itself — click any{' '}
+                <span className="mono">ⓘ</span> or just ask.
+              </div>
+            </div>
+            <div className="welcome-actions">
+              <button
+                className="btn sm"
+                onClick={() => {
+                  dismissWelcome();
+                  window.dispatchEvent(new CustomEvent('pulseguard:ask', { detail: {} }));
+                }}
+              >
+                Ask the assistant
+              </button>
+              <button className="btn ghost sm" onClick={dismissWelcome}>
+                Explore on my own
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Page header */}
         <div className="page-head">
           <div>
@@ -247,7 +293,10 @@ export default function Home() {
                   <span className="badge-dot pulse" style={{ color: 'var(--risk)' }} />
                   <span>
                     Usage fell past the {t.threshold}% alert line
-                    <InfoDot text={`If weekly usage drops by more than ${t.threshold}%, PulseGuard treats it as churn risk and starts the alert loop automatically.`} />
+                    <InfoDot
+                      question="What is the alert line?"
+                      text={`If weekly usage drops by more than ${t.threshold}%, PulseGuard treats it as churn risk and starts the alert loop automatically.`}
+                    />
                   </span>
                 </>
               ) : (
@@ -283,7 +332,10 @@ export default function Home() {
             <div className="sub-tag">
               <span>
                 Contract value under watch
-                <InfoDot text="The total annual contract value of the accounts PulseGuard is monitoring for this tenant." />
+                <InfoDot
+                  question="What does Revenue protected mean?"
+                  text="The total annual contract value of the accounts PulseGuard is monitoring for this tenant."
+                />
               </span>
             </div>
           </div>
@@ -302,7 +354,10 @@ export default function Home() {
             <div className="sub-tag">
               <span>
                 Average across your accounts
-                <InfoDot text="Health blends product usage, engagement and recency into one 0–100 score. 70+ is comfortable; below 50 usually means someone stopped logging in." />
+                <InfoDot
+                  question="What does the health score mean?"
+                  text="Health blends product usage, engagement and recency into one 0–100 score. 70+ is comfortable; below 50 usually means someone stopped logging in."
+                />
               </span>
             </div>
           </div>
@@ -331,7 +386,10 @@ export default function Home() {
                   <th>Contract value</th>
                   <th>
                     Health · last 7 days
-                    <InfoDot text="Each line is one account's health score over the past week. A falling red line is an early churn signal." />
+                    <InfoDot
+                      question="What do the health sparklines mean?"
+                      text="Each line is one account's health score over the past week. A falling red line is an early churn signal."
+                    />
                   </th>
                   <th>Status</th>
                   <th>Action</th>

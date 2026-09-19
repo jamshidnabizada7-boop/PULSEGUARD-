@@ -1,19 +1,21 @@
 import { NextResponse } from 'next/server';
 
-// PulseGuard Assistant — pure intent service. Deliberately makes NO server-side
-// network requests: replies are either built-in (deterministic, grounded in the
-// live context the client sends) or, when an LLM_API_KEY/LLM_BASE_URL pair is
-// later configured, composed by that provider. Destructive intents (e.g.
-// "acknowledge X") are NOT executed here — the route returns an action
-// descriptor and the browser panel performs it through the existing
-// /api/ack endpoint, so chat clicks run the same governed path as buttons.
+// PulseGuard Assistant.
+// Layer 1 — actions: "acknowledge Acme's risk" returns an action descriptor; the
+//           browser panel executes it through /api/ack (same governed path as the
+//           dashboard button). This route itself makes NO user-driven requests.
+// Layer 2 — LLM: OpenAI-compatible chat completion. The endpoint is a fixed
+//           literal (OpenRouter — edit the constant to change providers); the key
+//           lives in .env.local and is sent only in the Authorization header. On
+//           any failure we fall back to the built-in responder so the product
+//           never shows a dead chat.
+// Layer 3 — built-in responder: deterministic, context-grounded answers.
 
-const HUMAN_STATUS = {
-  RISK_ESCALATED: 'an alert was sent to the team channel',
-  ACKNOWLEDGED: 'the risk was acknowledged and the CRM was updated',
-  DEDUPLICATED: 'a duplicate alert was blocked by the 30-minute guard',
-  HEALTHY: 'the account looked healthy, so no alert was needed',
-};
+const SCREEN_GUIDE = `The product has three pages (left sidebar): Dashboard, Integrations, Activity.
+Dashboard elements: KPI cards (Accounts at risk, Healthy accounts, Revenue protected = total contract value watched, Avg health score = 0-100 usage/engagement blend); a Monitored accounts table where each row has an avatar, owner, contract value, a 7-day health sparkline (falling red line = churn signal), a "vs this week" delta chip, a status badge (NEEDS ATTENTION / HANDLED / HEALTHY) and an Acknowledge risk button; a "How the loop protects your revenue" pipeline (Usage drops > Risk detected > CRM updated > Team alerted > Loop closed); a status footer.
+Activity page: run history rows (When, Tenant & account, Workflow = Risk engine or Acknowledgement loop, Outcome badge, Ran on = where it executed, Execution trace = ordered internal steps proving real execution), KPIs (Total runs, Alerts sent, Duplicates blocked, Resolved or healthy), tenant filter, and a collapsed "Platform details" section holding all technical IDs.
+Integrations page: connector cards for HubSpot CRM and Slack Messaging with Test buttons, alert threshold slider, Slack channel setting, plus Widget / Live embed / Specs views.
+Badges: NEEDS ATTENTION = usage fell past the alert line and someone should look; HANDLED = a teammate acknowledged it and the CRM was updated; HEALTHY = normal usage.`;
 
 export async function POST(request) {
   let body;
@@ -30,7 +32,7 @@ export async function POST(request) {
   const accounts = Array.isArray(context.accounts) ? context.accounts : [];
   const risky = accounts.filter((a) => a.status === 'HIGH_RISK' && !a.acknowledged);
 
-  // ----- Action intents: return a descriptor; the panel executes it client-side -----
+  // ----- Layer 1: action intents (descriptor only; panel executes client-side) -----
   const wantsAck =
     /\b(acknowledge|ack|resolve|handle|close|clear|dismiss)\b/.test(q) &&
     /risk|alert|account|it|this|them/.test(q);
@@ -39,7 +41,8 @@ export async function POST(request) {
     const named =
       accounts.find((a) => q.includes(a.name.toLowerCase())) ||
       accounts.find((a) => q.includes(a.name.toLowerCase().split(' ')[0]));
-    const target = named || risky.sort(byArrDesc)[0];
+    const parseArr = (s) => Number(String(s || '').replace(/[^0-9.]/g, '')) || 0;
+    const target = named || [...risky].sort((a, b) => parseArr(b.arr) - parseArr(a.arr))[0];
 
     if (!target) {
       const anyRisk = accounts.some((a) => a.status === 'HIGH_RISK');
@@ -58,7 +61,8 @@ export async function POST(request) {
       return NextResponse.json({
         ok: true,
         via: 'builtin',
-        reply: `There's no open risk to acknowledge right now. The latest alerts have already been handled — want a recap of recent activity instead?`,
+        reply:
+          "There's no open risk to acknowledge right now. The latest alerts have already been handled — want a recap of recent activity instead?",
       });
     }
 
@@ -70,19 +74,55 @@ export async function POST(request) {
     });
   }
 
-  // ----- Built-in responder -----
-  const parseArr = (s) => Number(String(s || '').replace(/[^0-9.]/g, '')) || 0;
-  function byArrDesc(a, b) {
-    return parseArr(b.arr) - parseArr(a.arr);
+  // ----- Layer 2: LLM (fixed endpoint, hard timeout, graceful fallback) -----
+  if (process.env.LLM_API_KEY) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000);
+      const llmRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.LLM_API_KEY}`,
+          'HTTP-Referer': process.env.APP_BASE_URL || 'http://localhost:3210',
+          'X-Title': 'PulseGuard',
+        },
+        body: JSON.stringify({
+          model: process.env.LLM_MODEL || 'openai/gpt-4o-mini',
+          temperature: 0.4,
+          max_tokens: 250,
+          messages: [
+            {
+              role: 'system',
+              content:
+                `You are the PulseGuard assistant inside a customer-retention dashboard. The user may be a first-time visitor who doesn't know the domain — explain patiently, in plain English, without jargon.\n` +
+                `Rules: use ONLY the JSON context for facts (never invent accounts or numbers); keep answers under 90 words; no markdown headings; be warm and concrete; if asked to acknowledge a risk, say you're on it.\n\n` +
+                `Screen guide:\n${SCREEN_GUIDE}\n\nLive context (JSON):\n${JSON.stringify(context)}`,
+            },
+            ...messages.slice(-10),
+          ],
+        }),
+      });
+      clearTimeout(timer);
+      const j = await llmRes.json();
+      const reply = j?.choices?.[0]?.message?.content;
+      if (llmRes.ok && reply) return NextResponse.json({ ok: true, via: 'llm', reply });
+    } catch {
+      // fall through to built-in responder
+    }
   }
-  const priority = [...risky].sort(byArrDesc)[0] || null;
+
+  // ----- Layer 3: built-in responder -----
+  const parseArr = (s) => Number(String(s || '').replace(/[^0-9.]/g, '')) || 0;
+  const priority = [...risky].sort((a, b) => parseArr(b.arr) - parseArr(a.arr))[0] || null;
   const lastRun = context.lastRun || null;
   let reply;
 
   if (/^(hi|hello|hey|yo)\b/.test(q)) {
     reply = `Hi! I'm the PulseGuard assistant. I can explain anything on this screen, tell you which account needs attention first, recap recent activity, or acknowledge a risk for you — that runs a real Fastn workflow. What would you like to know?`;
-  } else if (/what (does|is).*(high risk|risk)|high risk mean|explain.*risk/.test(q)) {
-    reply = `HIGH RISK means a customer's weekly usage dropped by more than your alert line (${
+  } else if (/what (does|is).*(high risk|risk)|high risk mean|explain.*risk|need(s)? attention/.test(q)) {
+    reply = `HIGH RISK (shown as "needs attention") means a customer's weekly usage dropped by more than your alert line (${
       context.threshold ?? 'the'
     }%). PulseGuard has already diagnosed the account, written a note on their CRM timeline, and sent your team a Slack card${
       context.channel ? ` in ${context.channel}` : ''
@@ -110,6 +150,11 @@ export async function POST(request) {
       reply =
         'Nothing has run yet in this session. Press "Simulate anomaly" to watch PulseGuard detect a drop, update the CRM, and alert your team — then ask me what happened.';
     }
+  } else if (/sparkline|trend line|graph|chart|red line/.test(q)) {
+    reply =
+      "Each small chart is one account's health score over the last 7 days — right side is today. A gently flat green line is good. A falling red line means engagement is slipping; that's the early signal PulseGuard watches for you.";
+  } else if (/tenant|workspace|alpha|beta|isolat/.test(q)) {
+    reply = `A workspace (tenant) is one customer of your product with their own CRM connection and Slack channel. Switch workspaces from the bottom of the left sidebar — data never crosses between them, which is why Acme's alerts can never appear in Globex's channel.`;
   } else if (/(how|flow|works|pipeline|steps)|what happens|(slack|crm|alert)/.test(q)) {
     reply = `Here's the loop: 1) usage is watched continuously, 2) when weekly usage drops past your ${
       context.threshold ?? ''
@@ -118,6 +163,9 @@ export async function POST(request) {
     } with an Acknowledge button, 5) one click — here or in Slack — updates the CRM again and clears the alert. Everything runs on Fastn, isolated per tenant.`;
   } else if (/threshold|alert line|sensitivity/.test(q)) {
     reply = `The alert line is ${context.threshold ?? 'a'}%: if an account's usage falls by more than that in a week, PulseGuard treats it as churn risk and starts the loop. You can tune it per tenant on the Integrations page.`;
+  } else if (/(where|which page).*(see|find)|navigate|page/.test(q)) {
+    reply =
+      'Three pages, in the left sidebar: Dashboard for account health and actions, Integrations to connect CRM/Slack and tune the alert line, Activity to see proof of every automated run. The assistant (me) is on every page.';
   } else if (/thank|thanks|great|nice|cool/.test(q)) {
     reply = "Any time. I'm here if you want a recap, a prioritisation, or an acknowledgement.";
   } else if (/help|what can you|options|features/.test(q)) {
@@ -130,6 +178,13 @@ export async function POST(request) {
 
   return NextResponse.json({ ok: true, via: 'builtin', reply });
 }
+
+const HUMAN_STATUS = {
+  RISK_ESCALATED: 'an alert was sent to the team channel',
+  ACKNOWLEDGED: 'the risk was acknowledged and the CRM was updated',
+  DEDUPLICATED: 'a duplicate alert was blocked by the 30-minute guard',
+  HEALTHY: 'the account looked healthy, so no alert was needed',
+};
 
 function timeAgo(iso) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);

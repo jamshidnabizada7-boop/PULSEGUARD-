@@ -322,7 +322,10 @@ export default function Runs() {
                     <th>Ran on</th>
                     <th>
                       Execution trace
-                      <InfoDot text="Every internal step of the run, in order — this is the proof that the automation really executed end to end." />
+                      <InfoDot
+                        question="What is the execution trace?"
+                        text="Every internal step of the run, in order — this is the proof that the automation really executed end to end."
+                      />
                     </th>
                   </tr>
                 </thead>
