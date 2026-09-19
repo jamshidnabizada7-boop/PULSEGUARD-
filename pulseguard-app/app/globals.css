@@ -1122,7 +1122,7 @@ input[type='range']::-moz-range-thumb:hover {
   line-height: 1.5;
 }
 
-/* ============ Assistant ============ */
+/* ============ Assistant — Cursor-style docked chat ============ */
 .assistant-fab {
   position: fixed;
   bottom: 22px;
@@ -1164,58 +1164,46 @@ input[type='range']::-moz-range-thumb:hover {
   100% { transform: scale(1.22); opacity: 0; }
 }
 
-.assistant-panel {
+.chat-dock {
   position: fixed;
-  bottom: 80px;
-  right: 22px;
-  width: 380px;
-  max-width: calc(100vw - 40px);
-  height: 540px;
-  max-height: calc(100vh - 120px);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  max-width: 100vw;
   display: flex;
   flex-direction: column;
-  background: #141417;
-  border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  background: #131316;
+  border-left: 1px solid var(--line);
   z-index: 1100;
-  overflow: hidden;
-  animation: toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: dock-in 0.18s ease;
 }
 
-.assistant-head {
+@keyframes dock-in {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.chat-head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
   padding: 13px 14px;
   border-bottom: 1px solid var(--line);
 }
 
-.assistant-head-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  border: 1px solid var(--line-strong);
-  color: var(--text);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.assistant-head-text {
-  flex: 1;
+.chat-head-text {
   min-width: 0;
 }
 
-.assistant-title {
+.chat-title {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
   letter-spacing: -0.01em;
 }
 
-.assistant-sub {
+.chat-sub {
   font-size: 11px;
   color: var(--muted-dark);
   white-space: nowrap;
@@ -1223,7 +1211,7 @@ input[type='range']::-moz-range-thumb:hover {
   text-overflow: ellipsis;
 }
 
-.assistant-close {
+.chat-close {
   border: none;
   background: none;
   color: var(--muted-dark);
@@ -1237,45 +1225,48 @@ input[type='range']::-moz-range-thumb:hover {
   transition: color 0.12s ease, background 0.12s ease;
 }
 
-.assistant-close:hover {
+.chat-close:hover {
   color: var(--text);
   background: rgba(255, 255, 255, 0.06);
 }
 
-.assistant-messages {
+.chat-msgs {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 18px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
-.assistant-msg {
-  max-width: 88%;
-  padding: 9px 13px;
-  border-radius: 12px;
+.chat-msg {
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.6;
   white-space: pre-wrap;
 }
 
-.assistant-msg.user {
-  align-self: flex-end;
-  background: #2a2a2f;
+.chat-msg.user {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 13px;
   color: var(--text);
-  border-bottom-right-radius: 4px;
-  font-weight: 450;
+  margin-left: 24px;
 }
 
-.assistant-msg.assistant {
-  align-self: flex-start;
-  background: rgba(255, 255, 255, 0.035);
+.chat-msg.bot {
   color: var(--text-dim);
-  border-bottom-left-radius: 4px;
+  padding: 0 2px;
 }
 
-.assistant-working {
+.chat-msg.typing {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 2px;
+}
+
+.chat-working {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1283,13 +1274,6 @@ input[type='range']::-moz-range-thumb:hover {
   font-size: 11.5px;
   color: var(--muted);
   font-weight: 500;
-}
-
-.assistant-msg.typing {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  padding: 12px 14px;
 }
 
 .tdot {
@@ -1308,70 +1292,141 @@ input[type='range']::-moz-range-thumb:hover {
   30% { transform: translateY(-3px); opacity: 1; }
 }
 
-.assistant-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 0 16px 10px;
+/* Suggestion rows — bold label + gray description + chevron */
+.chat-suggests {
+  padding: 2px 8px 8px;
 }
 
-.assistant-chip {
-  border: 1px solid var(--line);
+.chat-suggest {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 20px auto 1fr 12px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
   background: none;
-  color: var(--muted);
+  border: none;
+  color: inherit;
   font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 450;
-  padding: 5px 11px;
-  border-radius: 9999px;
+  text-align: left;
   cursor: pointer;
-  transition: all 0.12s ease;
+  border-radius: 8px;
+  transition: background 0.12s ease;
 }
 
-.assistant-chip:hover:not(:disabled) {
-  color: var(--text);
-  border-color: var(--line-strong);
-  background: rgba(255, 255, 255, 0.03);
+.chat-suggest + .chat-suggest {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-.assistant-chip:disabled {
+.chat-suggest:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.chat-suggest:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.assistant-inputrow {
-  display: flex;
-  gap: 8px;
-  padding: 12px 14px 8px;
+.cs-icon {
+  color: var(--muted);
+}
+
+.cs-label {
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.cs-desc {
+  font-size: 12px;
+  color: var(--muted-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-chev {
+  color: var(--muted-dark);
+  font-size: 14px;
+  justify-self: end;
+}
+
+/* Composer — tall box, controls inside the footer row */
+.composer-area {
+  padding: 8px 12px 8px;
   border-top: 1px solid var(--line);
 }
 
-.assistant-input {
-  flex: 1;
-  min-width: 0;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13px;
-  padding: 9px 12px;
-  outline: none;
+.composer {
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px 10px 8px 12px;
   transition: border-color 0.12s ease;
 }
 
-.assistant-input:focus {
-  border-color: var(--line-strong);
+.composer:focus-within {
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
-.assistant-input::placeholder {
+.composer-input {
+  width: 100%;
+  background: none;
+  border: none;
+  outline: none;
+  resize: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  display: block;
+}
+
+.composer-input::placeholder {
   color: var(--muted-dark);
 }
 
-.assistant-send {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+.composer-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 550;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.mode-pill:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+.model-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--muted-dark);
+}
+
+.composer-send {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   border: none;
   background: #fafafa;
   color: #101012;
@@ -1380,26 +1435,29 @@ input[type='range']::-moz-range-thumb:hover {
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.12s ease;
+  transition: background 0.12s ease, opacity 0.12s ease;
 }
 
-.assistant-send:hover:not(:disabled) {
+.composer-send:hover:not(:disabled) {
   background: #e4e4e7;
 }
 
-.assistant-send:disabled {
-  opacity: 0.4;
+.composer-send:disabled {
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
-.assistant-foot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 6px 16px 12px;
+.chat-foot {
+  text-align: center;
   font-size: 10.5px;
   color: var(--muted-dark);
+  padding: 7px 0 2px;
+}
+
+@media (max-width: 480px) {
+  .chat-dock {
+    width: 100vw;
+  }
 }
 
 /* ============ Welcome strip (first visit, quiet) ============ */

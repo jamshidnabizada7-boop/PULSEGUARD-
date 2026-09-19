@@ -1,7 +1,19 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { getTenant, tenantFromSearch } from '../lib/tenants';
-import { IconMessage, IconSend, IconX, IconZap, IconCheck, IconSpinner } from './icons';
+import {
+  IconMessage,
+  IconX,
+  IconZap,
+  IconCheck,
+  IconSpinner,
+  IconArrowUp,
+  IconLock,
+  IconChevronDown,
+  IconInfo,
+  IconActivity,
+  IconUser,
+} from './icons';
 
 const GREETING = {
   role: 'assistant',
@@ -90,7 +102,7 @@ export default function AssistantPanel() {
   }, [msgs, busy, open]);
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 120);
+    if (open) setTimeout(() => inputRef.current?.focus(), 140);
   }, [open]);
 
   const tenant = getTenant(tenantId);
@@ -98,10 +110,16 @@ export default function AssistantPanel() {
     (a) => a.status === 'HIGH_RISK' && !extraAcked[`${tenant.id}:${a.id}`]
   );
   const suggestions = [
-    'What does HIGH RISK mean?',
-    'Which account should I contact first?',
-    'What just happened?',
-    ...(risky[0] ? [`Acknowledge the ${risky[0].name} risk`] : []),
+    { icon: IconUser, label: 'Which account needs attention?', desc: 'Prioritise your outreach in seconds' },
+    { icon: IconInfo, label: 'What does NEEDS ATTENTION mean?', desc: 'Every status explained in plain English' },
+    { icon: IconActivity, label: 'What just happened?', desc: 'A recap of the latest workflow run' },
+    ...(risky[0]
+      ? [{
+          icon: IconCheck,
+          label: `Acknowledge the ${risky[0].name} risk`,
+          desc: 'Runs the real acknowledgement workflow',
+        }]
+      : []),
   ];
 
   async function send(text) {
@@ -184,39 +202,36 @@ export default function AssistantPanel() {
         aria-label={open ? 'Close assistant' : 'Open assistant'}
         title="PulseGuard Assistant — ask anything"
       >
-        {open ? <IconX size={19} /> : <IconMessage size={19} />}
+        {open ? <IconX size={18} /> : <IconMessage size={18} />}
       </button>
 
       {open && (
-        <div className="assistant-panel" role="dialog" aria-label="PulseGuard Assistant">
-          <div className="assistant-head">
-            <span className="assistant-head-icon">
-              <IconZap size={15} />
-            </span>
-            <div className="assistant-head-text">
-              <div className="assistant-title">PulseGuard Assistant</div>
-              <div className="assistant-sub">
+        <div className="chat-dock" role="dialog" aria-label="PulseGuard Assistant">
+          <div className="chat-head">
+            <div className="chat-head-text">
+              <div className="chat-title">Assistant</div>
+              <div className="chat-sub">
                 {tenant.company} · {tenant.channel}
               </div>
             </div>
-            <button className="assistant-close" onClick={() => setOpen(false)} aria-label="Close">
+            <button className="chat-close" onClick={() => setOpen(false)} aria-label="Close">
               <IconX size={15} />
             </button>
           </div>
 
-          <div className="assistant-messages" ref={listRef}>
+          <div className="chat-msgs" ref={listRef}>
             {msgs.map((m, i) => (
-              <div key={i} className={`assistant-msg ${m.role}`}>
+              <div key={i} className={`chat-msg ${m.role}`}>
                 {m.content}
                 {m.working && (
-                  <span className="assistant-working">
-                    <IconSpinner size={13} /> running workflow…
+                  <span className="chat-working">
+                    <IconSpinner size={12} /> running workflow…
                   </span>
                 )}
               </div>
             ))}
             {busy && (
-              <div className="assistant-msg assistant typing">
+              <div className="chat-msg bot typing">
                 <span className="tdot" />
                 <span className="tdot" />
                 <span className="tdot" />
@@ -224,31 +239,57 @@ export default function AssistantPanel() {
             )}
           </div>
 
-          <div className="assistant-chips">
-            {suggestions.map((s) => (
-              <button key={s} className="assistant-chip" onClick={() => send(s)} disabled={busy}>
-                {s}
-              </button>
-            ))}
-          </div>
+          {msgs.length <= 1 && (
+            <div className="chat-suggests">
+              {suggestions.map(({ icon: Icon, label, desc }) => (
+                <button key={label} className="chat-suggest" onClick={() => send(label)} disabled={busy}>
+                  <Icon size={15} className="cs-icon" />
+                  <span className="cs-label">{label}</span>
+                  <span className="cs-desc">{desc}</span>
+                  <span className="cs-chev">›</span>
+                </button>
+              ))}
+            </div>
+          )}
 
-          <div className="assistant-inputrow">
-            <input
-              ref={inputRef}
-              className="assistant-input"
-              placeholder="Ask anything, or give an instruction…"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') send();
-              }}
-            />
-            <button className="assistant-send" onClick={() => send()} disabled={busy || !input.trim()} aria-label="Send">
-              <IconSend size={15} />
-            </button>
-          </div>
-          <div className="assistant-foot">
-            <IconCheck size={11} /> AI-powered explanations · Real actions through Fastn
+          <div className="composer-area">
+            <div className="composer">
+              <textarea
+                ref={inputRef}
+                className="composer-input"
+                rows={2}
+                placeholder="Ask anything — or describe an action"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    send();
+                  }
+                }}
+              />
+              <div className="composer-foot">
+                <button className="mode-pill" title="Explains, prioritises, and acknowledges on your behalf">
+                  <IconZap size={11} />
+                  Agent
+                  <IconChevronDown size={11} />
+                </button>
+                <span className="model-label">
+                  <IconLock size={10} />
+                  GPT-4o Mini
+                </span>
+                <span style={{ flex: 1 }} />
+                <button
+                  className="composer-send"
+                  onClick={() => send()}
+                  disabled={busy || !input.trim()}
+                  aria-label="Send"
+                >
+                  <IconArrowUp size={14} strokeWidth={2.25} />
+                </button>
+              </div>
+            </div>
+            <div className="chat-foot">Explains what you see · Acts through Fastn workflows</div>
           </div>
         </div>
       )}
