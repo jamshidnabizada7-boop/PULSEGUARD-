@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { getTenant, tenantFromSearch, WIDGET_ID, WORKFLOWS } from '../../lib/tenants';
-import { IconZap, IconLink, IconArrowUpRight, IconCopy, IconRefresh, IconCheck } from '../../components/icons';
+import { IconZap, IconLink, IconArrowUpRight, IconCopy, IconRefresh, IconCheck, IconPulse } from '../../components/icons';
 
 export default function Integrations() {
   const [tenant, setTenant] = useState('tenant-alpha');
@@ -125,7 +125,7 @@ export default function Integrations() {
           </div>
           <p className="muted" style={{ marginTop: 14, fontSize: 13, lineHeight: 1.6 }}>
             Both connectors are authenticated via Fastn managed connections. When an anomaly triggers, the Risk Engine executes against
-            tenant <span className="mono" style={{ color: 'var(--accent)' }}>{current.endOrgId}</span>, ensuring Acme Corp alerts never leak into Globex Exports channels.
+            the tenant's own Fastn workspace, so Acme Corp alerts never leak into Globex Exports channels.
           </p>
         </div>
       </div>
@@ -145,11 +145,35 @@ function WidgetMount({ tenant, currentConfig }) {
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
   const [connectorFilter, setConnectorFilter] = useState('all'); // 'all' | 'installed' | 'available'
+  const [embedSrc, setEmbedSrc] = useState(null);
+  const [embedError, setEmbedError] = useState(false);
 
   useEffect(() => {
     setThreshold(currentConfig.threshold);
     setChannel(currentConfig.channel);
   }, [currentConfig]);
+
+  // The raw platform iframe must be loaded WITH a minted access token —
+  // the server exchanges FASTN_API_KEY for a short-lived embed token.
+  useEffect(() => {
+    if (viewMode !== 'iframe' || iframeSubMode !== 'raw') return;
+    let cancelled = false;
+    setEmbedSrc(null);
+    setEmbedError(false);
+    fetch(`/api/embed-token?tenant=${encodeURIComponent(tenant)}`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled) return;
+        if (j?.ok && j.mode === 'token' && j.directUrl) setEmbedSrc(j.directUrl);
+        else setEmbedError(true);
+      })
+      .catch(() => {
+        if (!cancelled) setEmbedError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewMode, iframeSubMode, tenant, iframeKey]);
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -278,16 +302,14 @@ function WidgetMount({ tenant, currentConfig }) {
               <div style={{
                 width: 44,
                 height: 44,
-                borderRadius: 10,
-                background: 'linear-gradient(135deg, #22d3ee, #8b5cf6)',
+                borderRadius: 11,
+                border: '1px solid var(--line-strong)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 20,
-                color: '#06121f',
-                fontWeight: 'bold',
+                color: 'var(--text)',
               }}>
-                <IconZap size={20} />
+                <IconPulse size={20} strokeWidth={2} />
               </div>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: '#f8fafc', marginBottom: 3 }}>
@@ -695,8 +717,8 @@ function WidgetMount({ tenant, currentConfig }) {
                   gap: 12
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff' }}>
-                      <IconZap size={18} />
+                    <div style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--line-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
+                      <IconPulse size={16} strokeWidth={2} />
                     </div>
                     <div>
                       <strong style={{ fontSize: 14, color: '#f8fafc' }}>Fastn Integration Hub</strong>
@@ -891,7 +913,7 @@ function WidgetMount({ tenant, currentConfig }) {
             </div>
           )}
 
-          {/* SUBMODE B: RAW PLATFORM IFRAME */}
+          {/* SUBMODE B: RAW PLATFORM IFRAME (tokenized) */}
           {iframeSubMode === 'raw' && (
             <div style={{ flex: 1, position: 'relative', width: '100%', minHeight: 560, background: '#0a0a0c' }}>
               <div style={{
@@ -901,10 +923,44 @@ function WidgetMount({ tenant, currentConfig }) {
                 fontSize: 11.5,
                 color: '#a1a1aa'
               }}>
-                Target: <code className="mono" style={{ color: 'var(--accent)' }}>{directIframeSrc}</code> · CSP <code>frame-ancestors *</code>
+                Target: <code className="mono" style={{ color: 'var(--accent)' }}>{embedSrc || 'minting access token…'}</code> · signed, short-lived embed token
               </div>
 
-              {!iframeLoaded && (
+              {embedError && (
+                <div style={{
+                  position: 'absolute',
+                  inset: '35px 0 0 0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#0a0a0c',
+                  zIndex: 2,
+                  textAlign: 'center',
+                  padding: 24,
+                }}>
+                  <div className="empty-state">
+                    <span className="empty-icon"><IconPulse size={20} /></span>
+                    <div className="empty-title">Live embed needs a Fastn access token</div>
+                    <div className="empty-sub" style={{ marginBottom: 14 }}>
+                      The embed token couldn't be minted right now. The Widget view shows the same
+                      connections — or open this tenant's installation console directly in Fastn.
+                    </div>
+                    <a
+                      href={fastnTargetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn ghost sm"
+                      style={{ color: 'var(--accent)', borderColor: 'var(--line-accent)', textDecoration: 'none' }}
+                    >
+                      <IconArrowUpRight size={12} />
+                      Open in Fastn
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {!embedSrc && !embedError && (
                 <div style={{
                   position: 'absolute',
                   inset: '35px 0 0 0',
@@ -925,25 +981,27 @@ function WidgetMount({ tenant, currentConfig }) {
                     borderRadius: '50%',
                     animation: 'spin 1s linear infinite'
                   }} />
-                  <span>Loading Fastn Integration Hub frame from api.fastn.dev…</span>
+                  <span>Signing you into the Fastn embed…</span>
                   <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
                 </div>
               )}
 
-              <iframe
-                key={iframeKey}
-                src={directIframeSrc}
-                onLoad={() => setIframeLoaded(true)}
-                style={{
-                  width: '100%',
-                  height: 'calc(100% - 35px)',
-                  border: 'none',
-                  background: '#0a0a0c',
-                  display: 'block',
-                }}
-                allow="clipboard-write"
-                title="Fastn PulseGuard Integrations Widget"
-              />
+              {embedSrc && (
+                <iframe
+                  key={iframeKey}
+                  src={embedSrc}
+                  onLoad={() => setIframeLoaded(true)}
+                  style={{
+                    width: '100%',
+                    height: 'calc(100% - 35px)',
+                    border: 'none',
+                    background: '#0a0a0c',
+                    display: 'block',
+                  }}
+                  allow="clipboard-write"
+                  title="Fastn PulseGuard Integrations Widget"
+                />
+              )}
             </div>
           )}
         </div>

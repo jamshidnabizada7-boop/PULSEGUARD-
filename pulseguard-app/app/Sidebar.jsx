@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import { TENANT_LIST, getTenant, tenantFromSearch, pushTenant } from '../lib/tenants';
-import { IconPulse, IconDashboard, IconSparkle, IconActivity, IconUsers } from '../components/icons';
+import { IconPulse, IconDashboard, IconSparkle, IconActivity, IconUsers, IconChevronDown, IconCheck } from '../components/icons';
 
 const NAV = [
   { href: '/', label: 'Dashboard', icon: IconDashboard, match: '/' },
@@ -11,14 +12,13 @@ const NAV = [
 ];
 
 export default function Sidebar() {
-  const [pathname, setPathname] = useState('/');
+  const pathname = usePathname();
   const [tenant, setTenant] = useState('tenant-alpha');
+  const [ddOpen, setDdOpen] = useState(false);
+  const ddRef = useRef(null);
 
   useEffect(() => {
-    const sync = () => {
-      setPathname(window.location.pathname);
-      setTenant(tenantFromSearch(window.location.pathname === '/runs' ? 'all' : 'tenant-alpha'));
-    };
+    const sync = () => setTenant(tenantFromSearch(pathname === '/runs' ? 'all' : 'tenant-alpha'));
     sync();
     window.addEventListener('popstate', sync);
     window.addEventListener('tenantchange', sync);
@@ -26,22 +26,43 @@ export default function Sidebar() {
       window.removeEventListener('popstate', sync);
       window.removeEventListener('tenantchange', sync);
     };
-  }, []);
+  }, [pathname]);
+
+  // Close the tenant dropdown when clicking anywhere outside it
+  useEffect(() => {
+    if (!ddOpen) return;
+    const onDown = (e) => {
+      if (ddRef.current && !ddRef.current.contains(e.target)) setDdOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setDdOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [ddOpen]);
 
   const current = tenant !== 'all' ? getTenant(tenant) : null;
   const tenantParam = tenant && tenant !== 'all' ? `?tenant=${tenant}` : '';
+  const options = [
+    ...(pathname === '/runs' ? [{ id: 'all', label: 'All tenants (audit)' }] : []),
+    ...TENANT_LIST.map((t) => ({ id: t.id, label: t.label })),
+  ];
 
-  function handleSwitch(e) {
-    const next = e.target.value;
-    setTenant(next);
-    pushTenant(next);
+  function choose(id) {
+    setTenant(id);
+    pushTenant(id);
+    setDdOpen(false);
   }
 
   return (
     <aside className="sidebar">
       <Link href={`/${tenantParam}`} className="sb-brand">
         <span className="sb-logo">
-          <IconPulse size={17} strokeWidth={2.25} />
+          <IconPulse size={15} strokeWidth={2.25} />
         </span>
         <span className="sb-brand-text">
           <span className="sb-name">PulseGuard</span>
@@ -77,17 +98,34 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
-        <label className="sb-switch">
-          <IconUsers size={13} />
-          <select value={tenant} onChange={handleSwitch} aria-label="Switch workspace">
-            {pathname === '/runs' && <option value="all">All tenants (audit)</option>}
-            {TENANT_LIST.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="sb-dd-wrap" ref={ddRef}>
+          <button
+            className="sb-dd-btn"
+            onClick={() => setDdOpen((v) => !v)}
+            aria-haspopup="listbox"
+            aria-expanded={ddOpen}
+          >
+            <IconUsers size={13} />
+            <span className="sb-dd-label">{current ? current.label : 'All tenants (audit)'}</span>
+            <IconChevronDown size={12} className={ddOpen ? 'open' : ''} />
+          </button>
+          {ddOpen && (
+            <div className="sb-dd" role="listbox">
+              {options.map((o) => (
+                <button
+                  key={o.id}
+                  role="option"
+                  aria-selected={o.id === tenant}
+                  className={`sb-dd-item ${o.id === tenant ? 'selected' : ''}`}
+                  onClick={() => choose(o.id)}
+                >
+                  <span>{o.label}</span>
+                  {o.id === tenant && <IconCheck size={13} />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="sb-foot">

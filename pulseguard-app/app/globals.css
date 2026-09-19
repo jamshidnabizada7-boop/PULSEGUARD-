@@ -278,36 +278,94 @@ a {
   text-overflow: ellipsis;
 }
 
-.sb-switch {
+.sb-dd-wrap {
+  position: relative;
+}
+
+.sb-dd-btn {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 5px 8px;
+  padding: 6px 8px;
   border-radius: 7px;
-  color: var(--muted-dark);
-  transition: background 0.12s ease;
-}
-
-.sb-switch:hover {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.sb-switch select {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  color: var(--muted);
   border: none;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
   font-size: 11.5px;
   font-weight: 500;
-  outline: none;
   cursor: pointer;
-  font-family: inherit;
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 
-.sb-switch select option {
-  background: var(--panel-solid);
+.sb-dd-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text);
+}
+
+.sb-dd-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-dd-btn svg {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.sb-dd-btn svg.open {
+  transform: rotate(180deg);
+}
+
+.sb-dd {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #1b1b1f;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  padding: 4px;
+  z-index: 300;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  animation: toast-in 0.14s ease;
+}
+
+.sb-dd-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.sb-dd-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+.sb-dd-item.selected {
+  color: var(--text);
+}
+
+.sb-dd-item svg {
+  color: var(--accent);
+  flex-shrink: 0;
 }
 
 .sb-foot {

@@ -42,8 +42,10 @@ const TENANT_DATA = {
   },
 };
 
+// Verified embed API host — kept as a fixed literal, never built from request input.
+const EMBED_HOST = 'https://api.fastn.dev';
+
 async function handleEmbedToken(tenantParam) {
-  const host = process.env.FASTN_HOST || process.env.NEXT_PUBLIC_FASTN_HOST || 'https://api.fastn.dev';
   const appHost = process.env.FASTN_APP_URL || process.env.NEXT_PUBLIC_FASTN_APP_URL || 'https://app.fastn.dev';
   const key = process.env.FASTN_API_KEY;
   const org = process.env.FASTN_ORG_ID || 'personal_dc05aac8b2c7b361ba84';
@@ -52,36 +54,39 @@ async function handleEmbedToken(tenantParam) {
   const endOrg = tenantConfig.endOrgId;
   const widgetId = 'wgt_fa0d339f81d4';
 
-  const defaultDirectUrl = `${host}/api/v1/embed/iframe?org-id=${org}&tenant-id=${endOrg}`;
+  const defaultDirectUrl = `${EMBED_HOST}/api/v1/embed/iframe?org-id=${org}&tenant-id=${endOrg}`;
   const previewUrl = `${appHost}/widgets/preview`;
   const widgetUrl = `${appHost}/widgets/${widgetId}`;
   const fastnFrameUrl = tenantConfig.installationUrl;
 
-  // If FASTN_API_KEY is available, attempt server-side token minting
+  // If FASTN_API_KEY is available, attempt server-side token minting.
+  // Fastn requires the END-ORG (the tenant) as x-org-id here — the personal org
+  // is rejected with IDENTITY_ORG_NOT_FOUND — and wraps the payload in `data`.
   if (key) {
     try {
-      const r = await fetch(`${host}/api/v1/embed/token`, {
+      const r = await fetch(`${EMBED_HOST}/api/v1/embed/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${key}`,
-          'x-org-id': org,
+          'x-org-id': endOrg,
         },
         body: JSON.stringify({ endOrgId: endOrg }),
       });
       if (r.ok) {
         const text = await r.text();
         const j = JSON.parse(text);
-        if (j.token) {
+        const token = j?.data?.token || j?.token;
+        if (token) {
           return NextResponse.json({
             ok: true,
             mode: 'token',
-            token: j.token,
-            expiresIn: j.expiresIn,
-            endOrgId: j.endOrgId || endOrg,
+            token,
+            expiresIn: j?.data?.expiresIn || j?.expiresIn,
+            endOrgId: j?.data?.endOrgId || endOrg,
             tenant,
             widgetId,
-            directUrl: `${host}/api/v1/embed/iframe?token=${j.token}`,
+            directUrl: `${EMBED_HOST}/api/v1/embed/iframe?token=${token}`,
             installationUrl: tenantConfig.installationUrl,
             portalUrl: tenantConfig.portalUrl,
             widgetUrl,
