@@ -107,7 +107,7 @@ export default function TopBar({ active = '/', tenant = 'tenant-alpha', onTenant
             fontSize: 11.5,
             padding: '3px 10px'
           }}>
-            {current ? `${current.channel} · ${current.threshold}% drop alert` : 'Cross-Tenant Audit'}
+            {current ? `${current.company} · ${current.channel} · >${current.threshold}% drop alert` : 'All Tenants · Cross-Tenant Audit'}
           </span>
         </div>
 
@@ -119,7 +119,7 @@ export default function TopBar({ active = '/', tenant = 'tenant-alpha', onTenant
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
           <span style={{ fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 700 }}>Tenant:</span>
-          <select value={tenant} onChange={handleSwitch}>
+          <select value={(active !== '/runs' && tenant === 'all') ? 'tenant-alpha' : tenant} onChange={handleSwitch}>
             {active === '/runs' && (
               <option value="all">All Tenants (Aggregated Audit)</option>
             )}

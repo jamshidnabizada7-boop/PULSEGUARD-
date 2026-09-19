@@ -41,7 +41,7 @@ const PORTFOLIOS = {
   },
 };
 
-function Spark({ points, isRisk }) {
+function Spark({ points, isRisk, id }) {
   const w = 96, h = 28;
   const minVal = 20, maxVal = 100;
   const step = w / (points.length - 1);
@@ -56,19 +56,19 @@ function Spark({ points, isRisk }) {
   const lastPoint = coords[coords.length - 1];
 
   const strokeColor = isRisk ? '#fb7185' : '#34d399';
-  const fillGradientId = `grad_${isRisk ? 'risk' : 'ok'}_${points[0]}_${points[points.length - 1]}`;
+  const fillGradientId = `grad_${id || 'spark'}_${isRisk ? 'risk' : 'ok'}`;
 
   return (
     <svg className="spark" viewBox={`0 0 ${w} ${h}`}>
       <defs>
         <linearGradient id={fillGradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={strokeColor} stopOpacity="0.3" />
+          <stop offset="0%" stopColor={strokeColor} stopOpacity="0.32" />
           <stop offset="100%" stopColor={strokeColor} stopOpacity="0.0" />
         </linearGradient>
       </defs>
       <path d={areaPath} fill={`url(#${fillGradientId})`} />
       <path d={linePath} fill="none" stroke={strokeColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={lastPoint.x} cy={lastPoint.y} r="3" fill={strokeColor} />
+      <circle cx={lastPoint.x} cy={lastPoint.y} r="3.5" fill={strokeColor} />
     </svg>
   );
 }
@@ -78,6 +78,8 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
   const [ackedMap, setAckedMap] = useState({});
+  const [highlightedRow, setHighlightedRow] = useState(null);
+  const [highlightType, setHighlightType] = useState('anomaly');
 
   const syncTenantFromUrl = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -85,6 +87,8 @@ export default function Home() {
       const t = p.get('tenant');
       if (t && PORTFOLIOS[t]) {
         setTenant(t);
+      } else {
+        setTenant('tenant-alpha');
       }
     }
   }, []);
@@ -124,6 +128,9 @@ export default function Home() {
       delete next[`${tenant}:${primary.id}`];
       return next;
     });
+    setHighlightedRow(primary.id);
+    setHighlightType('anomaly');
+    setTimeout(() => setHighlightedRow(null), 2800);
 
     try {
       const res = await fetch('/api/telemetry', {
@@ -181,6 +188,9 @@ export default function Home() {
       const j = await res.json().catch(() => ({}));
 
       setAckedMap((m) => ({ ...m, [`${tenant}:${accId}`]: true }));
+      setHighlightedRow(accId);
+      setHighlightType('ack');
+      setTimeout(() => setHighlightedRow(null), 2800);
       setToast(`✅ Churn risk for ${acc.name} acknowledged — CRM timeline updated`);
 
       if (typeof window !== 'undefined') {
@@ -363,7 +373,10 @@ export default function Home() {
                   const currentScore = a.trend[a.trend.length - 1];
 
                   return (
-                    <tr key={a.id}>
+                    <tr
+                      key={a.id}
+                      className={highlightedRow === a.id ? (highlightType === 'ack' ? 'row-ack-pulse' : 'row-anomaly-pulse') : ''}
+                    >
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <div className="company-avatar">
@@ -389,7 +402,7 @@ export default function Home() {
                       </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <Spark points={a.trend} isRisk={isHighRisk && !a.acknowledged} />
+                          <Spark points={a.trend} isRisk={isHighRisk && !a.acknowledged} id={a.id} />
                           <span className="mono" style={{
                             fontWeight: 700,
                             fontSize: 13,

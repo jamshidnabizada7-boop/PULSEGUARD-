@@ -611,14 +611,27 @@ tbody tr:hover {
   background: rgba(11, 18, 32, 0.85);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 14px;
+  padding: 14px 16px;
   position: relative;
   transition: all 0.15s ease;
+  overflow: hidden;
+}
+
+.pipeline-step::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  opacity: 0.6;
 }
 
 .pipeline-step:hover {
   border-color: var(--line-cyan);
   background: rgba(14, 24, 44, 0.95);
+  transform: translateY(-1px);
 }
 
 .pipeline-step .step-num {
@@ -641,6 +654,27 @@ tbody tr:hover {
   font-size: 11px;
   color: var(--muted);
   line-height: 1.45;
+}
+
+/* Table Row Feedback Animations */
+@keyframes row-anomaly-glow {
+  0% { background: rgba(244, 63, 94, 0.35); }
+  40% { background: rgba(244, 63, 94, 0.15); }
+  100% { background: transparent; }
+}
+
+@keyframes row-ack-glow {
+  0% { background: rgba(56, 189, 248, 0.35); }
+  40% { background: rgba(56, 189, 248, 0.15); }
+  100% { background: transparent; }
+}
+
+.row-anomaly-pulse {
+  animation: row-anomaly-glow 2.6s ease-out;
+}
+
+.row-ack-pulse {
+  animation: row-ack-glow 2.6s ease-out;
 }
 
 /* Range Inputs & Sliders */

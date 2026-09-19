@@ -343,8 +343,8 @@ export default function Runs() {
                         ? 'ack'
                         : 'risk';
 
-                    // Parse steps into visual breadcrumb items if separated by dots
-                    const stepList = (r.steps || '').split('·').map((s) => s.trim()).filter(Boolean);
+                    // Parse steps into visual breadcrumb items if separated by dots or arrows
+                    const stepList = (r.steps || '').split(/·|->|→/).map((s) => s.trim()).filter(Boolean);
 
                     return (
                       <tr key={r.id || i}>
@@ -420,6 +420,14 @@ export default function Runs() {
                       </tr>
                     );
                   })}
+                  {runs.length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--muted)' }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', marginBottom: 4 }}>No execution traces recorded for this filter</div>
+                        <div style={{ fontSize: 12 }}>Click &quot;Simulate Live Execution&quot; above to dispatch a test event through the Fastn runtime.</div>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

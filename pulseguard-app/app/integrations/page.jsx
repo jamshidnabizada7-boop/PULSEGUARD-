@@ -52,6 +52,8 @@ export default function Integrations() {
       const t = p.get('tenant');
       if (t && TENANT_INTEGRATIONS[t]) {
         setTenant(t);
+      } else {
+        setTenant('tenant-alpha');
       }
     }
   }, []);
@@ -299,8 +301,10 @@ function WidgetMount({ tenant, currentConfig }) {
               padding: '5px 14px',
               fontSize: 12,
               borderColor: viewMode === 'governed' ? 'var(--accent)' : 'var(--line)',
-              background: viewMode === 'governed' ? 'var(--panel)' : 'transparent',
-              color: viewMode === 'governed' ? 'var(--text)' : 'var(--muted)',
+              background: viewMode === 'governed' ? 'rgba(6, 182, 212, 0.16)' : 'transparent',
+              color: viewMode === 'governed' ? 'var(--accent)' : 'var(--muted)',
+              fontWeight: viewMode === 'governed' ? 700 : 500,
+              boxShadow: viewMode === 'governed' ? '0 0 12px rgba(6, 182, 212, 0.25)' : 'none',
             }}
             onClick={() => setViewMode('governed')}
           >
@@ -313,8 +317,10 @@ function WidgetMount({ tenant, currentConfig }) {
               padding: '5px 14px',
               fontSize: 12,
               borderColor: viewMode === 'iframe' ? 'var(--accent)' : 'var(--line)',
-              background: viewMode === 'iframe' ? 'var(--panel)' : 'transparent',
-              color: viewMode === 'iframe' ? 'var(--text)' : 'var(--muted)',
+              background: viewMode === 'iframe' ? 'rgba(6, 182, 212, 0.16)' : 'transparent',
+              color: viewMode === 'iframe' ? 'var(--accent)' : 'var(--muted)',
+              fontWeight: viewMode === 'iframe' ? 700 : 500,
+              boxShadow: viewMode === 'iframe' ? '0 0 12px rgba(6, 182, 212, 0.25)' : 'none',
             }}
             onClick={() => {
               setViewMode('iframe');
@@ -330,8 +336,10 @@ function WidgetMount({ tenant, currentConfig }) {
               padding: '5px 14px',
               fontSize: 12,
               borderColor: viewMode === 'specs' ? 'var(--accent)' : 'var(--line)',
-              background: viewMode === 'specs' ? 'var(--panel)' : 'transparent',
-              color: viewMode === 'specs' ? 'var(--text)' : 'var(--muted)',
+              background: viewMode === 'specs' ? 'rgba(6, 182, 212, 0.16)' : 'transparent',
+              color: viewMode === 'specs' ? 'var(--accent)' : 'var(--muted)',
+              fontWeight: viewMode === 'specs' ? 700 : 500,
+              boxShadow: viewMode === 'specs' ? '0 0 12px rgba(6, 182, 212, 0.25)' : 'none',
             }}
             onClick={() => setViewMode('specs')}
           >
