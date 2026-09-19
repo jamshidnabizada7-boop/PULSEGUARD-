@@ -105,6 +105,13 @@ export default function AssistantPanel() {
     if (open) setTimeout(() => inputRef.current?.focus(), 140);
   }, [open]);
 
+  // The dock is part of the layout (Cursor-style): shift content aside instead
+  // of overlaying it, so nothing on the page is hidden behind the chat.
+  useEffect(() => {
+    document.body.classList.toggle('chat-open', open);
+    return () => document.body.classList.remove('chat-open');
+  }, [open]);
+
   const tenant = getTenant(tenantId);
   const risky = tenant.accounts.filter(
     (a) => a.status === 'HIGH_RISK' && !extraAcked[`${tenant.id}:${a.id}`]

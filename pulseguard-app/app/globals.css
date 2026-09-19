@@ -123,6 +123,14 @@ a {
   min-width: 0;
   position: relative;
   z-index: 1;
+  transition: margin-right 0.18s ease;
+}
+
+/* Chat dock open: the layout makes room for it — nothing gets covered */
+@media (min-width: 641px) {
+  body.chat-open .main-col {
+    margin-right: 400px;
+  }
 }
 
 /* ============ Sidebar ============ */

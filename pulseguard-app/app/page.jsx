@@ -411,13 +411,13 @@ export default function Home() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <div className="company-avatar">{a.shortCode || a.name.substring(0, 2).toUpperCase()}</div>
                           <div>
-                            <div style={{ fontWeight: 650, color: '#fff', fontSize: 14 }}>{a.name}</div>
+                            <div style={{ fontWeight: 650, color: '#fff', fontSize: 14, whiteSpace: 'nowrap' }}>{a.name}</div>
                             <div className="muted mono" style={{ fontSize: 12 }}>{a.domain}</div>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-dim)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
                           <IconUser size={14} style={{ color: 'var(--muted)' }} />
                           <span>{a.owner}</span>
                         </div>
