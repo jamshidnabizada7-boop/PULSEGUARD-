@@ -34,8 +34,8 @@ export default async function (ctx) {
   const map = CONNECTION_MAP[tenant] || CONNECTION_MAP["tenant-alpha"];
   const fastn = new Fastn({
     connectors: {
-      hubspot: { orgId: "custom", connectionId: map.hubspot },
-      slack: { orgId: "custom", connectionId: map.slack },
+      hubspot: { orgId: "managed", connectionId: map.hubspot },
+      slack: { orgId: "managed", connectionId: map.slack },
     },
   });
 

@@ -82,3 +82,21 @@ name baked into the auto-generated org name at signup.)
 
 *Everything above was reproduced on 2026-09-18/19 against mcp.fastn.dev / live.fastn.ai /
 connect.fastn.dev with curl transcripts and MCP session logs available on request.*
+
+---
+
+## 7. "Fastn Workspace" self-connector is unusable (missing baseUrl credential)
+
+`getAction` shows every platform action's URL template is `"{{auth.baseUrl}}" + relative path`,
+but the connector's OAuth flow (Keycloak) never populates a `baseUrl` credential — every action
+call fails with: *"Action URL needs credential "baseUrl", which this connection does not carry."*
+This blocks agents from `publishWorkflow` / `deployWorkflowVersion` / `createWebhookTrigger` /
+`createScheduler` / `testSavedWorkflow` through the connector — the exact operations the MCP
+tool surface omits. Reproduced with a freshly authorized org-level connection (2026-09-19).
+
+## 8. createWorkflow rate-limiting with no Retry-After
+
+Under moderate agent usage (~15 createWorkflow calls/hour), the endpoint starts returning
+"Fastn Workspace is rate-limiting requests right now" with no `Retry-After` header, and the
+limit did not clear within 7 minutes of idle. Fine-grained deploy/publish via MCP tools would
+reduce the need to recreate workflows just to ship a code change (see #3).
