@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "fastn": {
+      "url": "https://mcp.fastn.dev",
+      "serverUrl": "https://mcp.fastn.dev",
+      "headers": {
+        "Authorization": "Bearer fsk_test_mbQcOslXpI3tafcJ66T66NEUDq5aFzjE"
+      }
+    }
+  }
+}
