@@ -5,6 +5,9 @@
 **Fastn Organization ID**: `personal_dc05aac8b2c7b361ba84` (*Hackathon Batch 13 Aryan*)  
 **Primary Contact / Builder**: Jamshid Nabizada (`jamshidnabizada7@gmail.com`)  
 **GitHub Repository**: [https://github.com/jamshidnabizada7-boop/PULSEGUARD-.git](https://github.com/jamshidnabizada7-boop/PULSEGUARD-.git)  
+**Live Production Deployment**: [https://pulseguard-app-nu.vercel.app](https://pulseguard-app-nu.vercel.app)  
+**Tenant Alpha Dashboard**: [https://pulseguard-app-nu.vercel.app/?tenant=tenant-alpha](https://pulseguard-app-nu.vercel.app/?tenant=tenant-alpha)  
+**Tenant Beta Dashboard**: [https://pulseguard-app-nu.vercel.app/?tenant=tenant-beta](https://pulseguard-app-nu.vercel.app/?tenant=tenant-beta)  
 **Submission Date**: September 19, 2026  
 
 ---

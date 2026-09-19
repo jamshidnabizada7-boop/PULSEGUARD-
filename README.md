@@ -2,6 +2,12 @@
 
 **Team hackathon-aryan · Build With Fastn Hackathon**
 
+**Live Vercel Deployment**: [https://pulseguard-app-nu.vercel.app](https://pulseguard-app-nu.vercel.app)
+- **Tenant Alpha (Acme Corp)**: [https://pulseguard-app-nu.vercel.app/?tenant=tenant-alpha](https://pulseguard-app-nu.vercel.app/?tenant=tenant-alpha)
+- **Tenant Beta (Globex Exports)**: [https://pulseguard-app-nu.vercel.app/?tenant=tenant-beta](https://pulseguard-app-nu.vercel.app/?tenant=tenant-beta)
+- **Integrations Panel (Fastn Widget)**: [https://pulseguard-app-nu.vercel.app/integrations](https://pulseguard-app-nu.vercel.app/integrations)
+- **Execution Audit (Fastn Activity)**: [https://pulseguard-app-nu.vercel.app/runs](https://pulseguard-app-nu.vercel.app/runs)
+
 PulseGuard watches customer health telemetry, predicts churn risk, enriches the account from
 the CRM via Fastn Unified APIs, drops a risk diagnosis on the CRM timeline, fires an
 interactive Slack alert to the right tenant channel — and **closes the loop** when CS

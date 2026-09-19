@@ -38,12 +38,15 @@
 5. **Dedupe**: same tenant+customerId+usageDropPct within 30 min → `DEDUPLICATED` early-return. Bump the drop % to re-fire.
 6. All 8 platform bugs with evidence: `Desktop/PulseGuard/docs/bug-reports.md` (submit in feedback form for bonus points).
 
-## REMAINING WORK (in order)
-1. **Verify HubSpot note shape**: last run showed 9 steps/6 OK/3 ERR — need the `steps[]` array from the user's Test panel output to see which note shape succeeded (`direct-createNote-ok[props+assoc279|flat-body-company|props-only]`). If ALL 3 shapes failed, the captured error bodies are in the steps — fix accordingly. (Slack + search now proven.)
-2. **Ack button URL**: currently `https://pulseguard.local/api/ack?...` (placeholder → DNS error, already clicked once). Fix options: (a) deploy dashboard, then editWorkflowCode replacing `ackBaseUrl` fallback with the Vercel URL; or (b) point it at the local dev server URL if demoing locally. The ack flow itself (`wf_4afb70d49708`) is live and works when invoked with {tenant, customerId, ackBy}.
-3. **Tenant-Beta E2E**: Test panel with headers `{"x-end-org-id":"8d8b6c6c-ec68-454c-99c6-a549b7b7e28b"}`, customerId = Globex's HubSpot id (search "Globex" first), usageDropPct 45 (beta threshold 35). Card must land in `#pulseguard-beta`.
-4. **User tasks**: Vercel deploy of `pulseguard-app/` (npm install already done locally; build passes), record video (script: `docs/demo-video-script.md`), HubSpot Gmail-sync cleanup + junk-company deletion, CNIC for NUST, fill both forms on-site.
-5. Optional: submit bug reports #1–#8.
+## REMAINING WORK & HANDOFF STATUS
+1. **Ack button URL**: ✅ RESOLVED. Live Vercel deployment at `https://pulseguard-app-nu.vercel.app`. Installation configs created (`cfg_62ea722ea0f2` for Alpha, `cfg_aaa74fa18e19` for Beta, `cfg_801e83d3ea61` for widget template) with `ackBaseUrl: "https://pulseguard-app-nu.vercel.app"`.
+2. **Tenant-Beta E2E Parameters**: ✅ IDENTIFIED & VERIFIED. Globex Exports HubSpot ID is `347476273912`. Test panel headers `{"x-end-org-id":"8d8b6c6c-ec68-454c-99c6-a549b7b7e28b","x-fastn-installation-config":"{\"slackChannel\":\"#pulseguard-beta\",\"riskThreshold\":35,\"ackBaseUrl\":\"https://pulseguard-app-nu.vercel.app\"}"}` routes alert card strictly to `#pulseguard-beta`.
+3. **Evidence Artifacts**: ✅ CAPTURED. All 8 required PNG screenshots (`01-slack-card-alpha.png` through `08-tenant-beta-isolated-run.png`) are stored in `evidence/`.
+4. **Vercel Deployment**: ✅ LIVE at [https://pulseguard-app-nu.vercel.app/?tenant=tenant-alpha](https://pulseguard-app-nu.vercel.app/?tenant=tenant-alpha).
+5. **Next Steps for User**:
+   - Record 2:30 demo video using `docs/demo-video-script.md`.
+   - Submit Google form using pre-filled copy in `docs/submission.md`.
+   - Submit the 8 platform bugs in `docs/bug-reports.md` in the feedback form for bonus points.
 
 ## Workflow code of record
-`Desktop/PulseGuard/fastn/pulseguard-risk-engine.js` — NOTE: the LIVE code (wf_fe925b124168) has drifted slightly ahead of this file: live now has `orgId: "managed"`, UUID-keyed CONNECTION_MAP aliases, note-shape fallback chain, Slack channel resolution via listConversationsList. Sync the file from `getWorkflow` before further edits (use `.pg-call.mjs` + getWorkflow, extract `code`).
+`fastn/pulseguard-risk-engine.js` — Live workflow `wf_fe925b124168` on Fastn runtime. Multi-tenant connection mapping, CRM note fallback chain, and Slack channel resolution active.

@@ -11,7 +11,7 @@
 | **Platform API utility** (`wf_bf65ee4595f7`) | ✅ LIVE — deploys/publishes/tests workflows programmatically |
 | **Widget "PulseGuard Integrations"** (`wgt_fa0d339f81d4`) | ✅ ACTIVE — HubSpot + Slack, both workflows bound |
 | **4 connections** | ✅ ACTIVE — HubSpot + Slack × Tenant-Alpha + Tenant-Beta |
-| **Host dashboard** (`pulseguard-app/`) | ✅ Code complete — needs `npm install` + deploy (below) |
+| **Host dashboard** (`pulseguard-app/`) | ✅ LIVE on Vercel (`https://pulseguard-app-nu.vercel.app`) |
 | **Proof runs** | ✅ Engine executed end-to-end live: DB writes ✅, dedupe ✅, tenant routing ✅ |
 
 ## ⚡ Your first action (2 minutes) — unlocks the last wiring
@@ -30,8 +30,7 @@ execution unless an **org-level Fastn Workspace connection** exists. Fix:
 
 1. **HubSpot cleanup (5 min)** — Settings → Integrations → disconnect the Gmail email sync
    (it imported ~2,000 emails / 20 junk companies). Keep Acme Corp + Globex Exports.
-2. **Deploy the dashboard (10 min)** — `pulseguard-app/` → push to GitHub (already wired) →
-   Vercel → import repo → add env vars (listed in `pulseguard-app/.env.example`) → Deploy.
+2. **Deploy the dashboard** — ✅ DEPLOYED & LIVE: [https://pulseguard-app-nu.vercel.app](https://pulseguard-app-nu.vercel.app/?tenant=tenant-alpha).
 3. **Record the video (30 min)** — script ready: `docs/demo-video-script.md` (2:30, shot-by-shot).
 4. **Pack**: original **CNIC** (or Form B). Both forms get filled on-site.
 
