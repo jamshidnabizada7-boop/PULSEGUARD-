@@ -1,61 +1,13 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import TopBar from '../TopBar';
-
-const TENANT_INTEGRATIONS = {
-  'tenant-alpha': {
-    name: 'Tenant Alpha — Acme Corp',
-    company: 'Acme Corp',
-    endOrgId: '1d599802-f9ad-4d62-830a-e66854c108c3',
-    installationId: 'inst_dcafc09c2f07',
-    hubspotCompany: 'Acme Corp (ID: 347506893507)',
-    slackChannel: '#pulseguard-alpha',
-    threshold: 40,
-    status: 'ACTIVE',
-    installationUrl: 'https://app.fastn.dev/installations/inst_dcafc09c2f07',
-    widgetUrl: 'https://app.fastn.dev/widgets/wgt_fa0d339f81d4',
-    connectorsUrl: 'https://app.fastn.dev/connectors',
-    previewUrl: 'https://app.fastn.dev/widgets/preview',
-    directUrl: 'https://api.fastn.dev/api/v1/embed/iframe?org-id=personal_dc05aac8b2c7b361ba84&tenant-id=1d599802-f9ad-4d62-830a-e66854c108c3',
-    connectUrls: {
-      hubspot: 'https://app.fastn.dev/connectors',
-      slack: 'https://app.fastn.dev/connectors',
-    },
-  },
-  'tenant-beta': {
-    name: 'Tenant Beta — Globex Exports',
-    company: 'Globex Exports',
-    endOrgId: '8d8b6c6c-ec68-454c-99c6-a549b7b7e28b',
-    installationId: 'inst_6e346d508e28',
-    hubspotCompany: 'Globex Exports (ID: 347476273912)',
-    slackChannel: '#pulseguard-beta',
-    threshold: 35,
-    status: 'ACTIVE',
-    installationUrl: 'https://app.fastn.dev/installations/inst_6e346d508e28',
-    widgetUrl: 'https://app.fastn.dev/widgets/wgt_fa0d339f81d4',
-    connectorsUrl: 'https://app.fastn.dev/connectors',
-    previewUrl: 'https://app.fastn.dev/widgets/preview',
-    directUrl: 'https://api.fastn.dev/api/v1/embed/iframe?org-id=personal_dc05aac8b2c7b361ba84&tenant-id=8d8b6c6c-ec68-454c-99c6-a549b7b7e28b',
-    connectUrls: {
-      hubspot: 'https://app.fastn.dev/connectors',
-      slack: 'https://app.fastn.dev/connectors',
-    },
-  },
-};
+import { getTenant, tenantFromSearch, WIDGET_ID, WORKFLOWS } from '../../lib/tenants';
+import { IconZap, IconLink, IconArrowUpRight, IconCopy, IconRefresh, IconCheck } from '../../components/icons';
 
 export default function Integrations() {
   const [tenant, setTenant] = useState('tenant-alpha');
 
   const syncTenantFromUrl = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const t = p.get('tenant');
-      if (t && TENANT_INTEGRATIONS[t]) {
-        setTenant(t);
-      } else {
-        setTenant('tenant-alpha');
-      }
-    }
+    setTenant(tenantFromSearch('tenant-alpha'));
   }, []);
 
   useEffect(() => {
@@ -68,36 +20,37 @@ export default function Integrations() {
     };
   }, [syncTenantFromUrl]);
 
-  const current = TENANT_INTEGRATIONS[tenant] || TENANT_INTEGRATIONS['tenant-alpha'];
+  const current = getTenant(tenant);
 
   return (
     <main>
-      <TopBar active="/integrations" tenant={tenant} onTenantChange={(t) => setTenant(t)} />
       <div className="wrap">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        <div className="page-head">
           <div>
-            <h1>Integrations &amp; Embeddings</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <h1 style={{ marginBottom: 0 }}>
+                Integrations <span className="grad-text">&amp; connections</span>
+              </h1>
+              <span className="badge ack">Both connected</span>
+            </div>
             <p className="sub" style={{ marginBottom: 0 }}>
-              Connect your CRM and Slack. Governed <strong>Fastn Widget</strong> (<code>wgt_fa0d339f81d4</code>)
-              with live multi-tenant isolation, installation portals, and runtime sync telemetry.
+              Connect the tools your team already uses. PulseGuard writes to your CRM and alerts
+              your team in Slack — every tenant stays fully isolated from the others.
             </p>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <span className="badge ack">Multi-tenant Active</span>
-            <div className="mono muted" style={{ fontSize: 12, marginTop: 4 }}>
-              Installation: {current.installationId}
-            </div>
-          </div>
+          <span className="env-chip">
+            Install: <strong>{current.installationId}</strong>
+          </span>
         </div>
 
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', background: 'rgba(255, 255, 255, 0.025)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             <div>
               <strong style={{ fontSize: 15 }}>Connect your stack</strong>
-              <span className="badge warn" style={{ marginLeft: 10 }}>widget · wgt_fa0d339f81d4</span>
+              <span className="badge warn" style={{ marginLeft: 10 }}>Managed by Fastn</span>
             </div>
             <div className="mono muted" style={{ fontSize: 12 }}>
-              End-Org: <span style={{ color: 'var(--accent)' }}>{current.endOrgId}</span>
+              {current.company}
             </div>
           </div>
 
@@ -107,9 +60,9 @@ export default function Integrations() {
 
           <div style={{ padding: '12px 20px', borderTop: '1px solid var(--line)', background: 'var(--panel2)', fontSize: 12.5, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
             <span>
-              Widget ID <span className="mono">wgt_fa0d339f81d4</span> · Workflows: <span className="mono">pulseguard-risk-engine-v2</span> + <span className="mono">pulseguard-ack-loop</span>
+              Powered by the Fastn widget · risk engine + acknowledgement loop attached
             </span>
-            <span>Governance: Fastn Managed Runtime · Zero-Leak Boundary</span>
+            <span>Each tenant's connections and channels never touch another tenant's</span>
           </div>
         </div>
 
@@ -186,7 +139,7 @@ function WidgetMount({ tenant, currentConfig }) {
   const [viewMode, setViewMode] = useState('governed'); // 'governed' | 'iframe' | 'specs'
   const [iframeSubMode, setIframeSubMode] = useState('hub'); // 'hub' | 'raw'
   const [threshold, setThreshold] = useState(currentConfig.threshold);
-  const [channel, setChannel] = useState(currentConfig.slackChannel);
+  const [channel, setChannel] = useState(currentConfig.channel);
   const [toastMsg, setToastMsg] = useState(null);
   const [testingHubspot, setTestingHubspot] = useState(false);
   const [testingSlack, setTestingSlack] = useState(false);
@@ -197,7 +150,7 @@ function WidgetMount({ tenant, currentConfig }) {
 
   useEffect(() => {
     setThreshold(currentConfig.threshold);
-    setChannel(currentConfig.slackChannel);
+    setChannel(currentConfig.channel);
   }, [currentConfig]);
 
   const showToast = (msg) => {
@@ -206,7 +159,7 @@ function WidgetMount({ tenant, currentConfig }) {
   };
 
   const handleSaveConfig = () => {
-    showToast(`Saved! Form schema updated for ${currentConfig.name} (Installation: ${currentConfig.installationId})`);
+    showToast(`Saved — alert policy synced for ${currentConfig.company}`);
   };
 
   const handleTestHubspot = () => {
@@ -270,81 +223,40 @@ function WidgetMount({ tenant, currentConfig }) {
             Fastn Governed Widget
           </span>
           <span className="mono muted" style={{ fontSize: 12 }}>
-            Installation {currentConfig.installationId} · {currentConfig.name.split('—')[1]?.trim() || currentConfig.name}
+            {currentConfig.company} · managed install
           </span>
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Permanent Open Fastn Frame button (Points to verified installation console) */}
           <a
             href={fastnTargetUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn ghost"
-            style={{
-              padding: '5px 12px',
-              fontSize: 12,
-              textDecoration: 'none',
-              background: 'rgba(167, 139, 250, 0.12)',
-              borderColor: 'var(--accent)',
-              color: 'var(--accent)',
-              fontWeight: 600,
-            }}
-            title={`Open ${currentConfig.name} in Fastn Platform Console`}
+            className="btn ghost sm"
+            style={{ color: 'var(--accent)', borderColor: 'var(--line-accent)' }}
+            title={`Open ${currentConfig.company} in Fastn Platform Console`}
           >
-            ↗ Open Fastn Frame
+            <IconArrowUpRight size={13} />
+            Open in Fastn
           </a>
 
-          <button
-            className={`btn ghost ${viewMode === 'governed' ? 'active' : ''}`}
-            style={{
-              padding: '5px 14px',
-              fontSize: 12,
-              borderColor: viewMode === 'governed' ? 'var(--accent)' : 'var(--line)',
-              background: viewMode === 'governed' ? 'rgba(139, 92, 246, 0.16)' : 'transparent',
-              color: viewMode === 'governed' ? 'var(--accent)' : 'var(--muted)',
-              fontWeight: viewMode === 'governed' ? 700 : 500,
-              boxShadow: viewMode === 'governed' ? '0 0 12px rgba(139, 92, 246, 0.25)' : 'none',
-            }}
-            onClick={() => setViewMode('governed')}
-          >
-            Governed Widget
-          </button>
-
-          <button
-            className={`btn ghost ${viewMode === 'iframe' ? 'active' : ''}`}
-            style={{
-              padding: '5px 14px',
-              fontSize: 12,
-              borderColor: viewMode === 'iframe' ? 'var(--accent)' : 'var(--line)',
-              background: viewMode === 'iframe' ? 'rgba(139, 92, 246, 0.16)' : 'transparent',
-              color: viewMode === 'iframe' ? 'var(--accent)' : 'var(--muted)',
-              fontWeight: viewMode === 'iframe' ? 700 : 500,
-              boxShadow: viewMode === 'iframe' ? '0 0 12px rgba(139, 92, 246, 0.25)' : 'none',
-            }}
-            onClick={() => {
-              setViewMode('iframe');
-              setIframeLoaded(false);
-            }}
-          >
-            Live Embed Iframe
-          </button>
-
-          <button
-            className={`btn ghost ${viewMode === 'specs' ? 'active' : ''}`}
-            style={{
-              padding: '5px 14px',
-              fontSize: 12,
-              borderColor: viewMode === 'specs' ? 'var(--accent)' : 'var(--line)',
-              background: viewMode === 'specs' ? 'rgba(139, 92, 246, 0.16)' : 'transparent',
-              color: viewMode === 'specs' ? 'var(--accent)' : 'var(--muted)',
-              fontWeight: viewMode === 'specs' ? 700 : 500,
-              boxShadow: viewMode === 'specs' ? '0 0 12px rgba(139, 92, 246, 0.25)' : 'none',
-            }}
-            onClick={() => setViewMode('specs')}
-          >
-            Connector Specs
-          </button>
+          <div className="seg">
+            <button className={`seg-btn ${viewMode === 'governed' ? 'active' : ''}`} onClick={() => setViewMode('governed')}>
+              Widget
+            </button>
+            <button
+              className={`seg-btn ${viewMode === 'iframe' ? 'active' : ''}`}
+              onClick={() => {
+                setViewMode('iframe');
+                setIframeLoaded(false);
+              }}
+            >
+              Live embed
+            </button>
+            <button className={`seg-btn ${viewMode === 'specs' ? 'active' : ''}`} onClick={() => setViewMode('specs')}>
+              Specs
+            </button>
+          </div>
         </div>
       </div>
 
@@ -377,7 +289,7 @@ function WidgetMount({ tenant, currentConfig }) {
                 color: '#06121f',
                 fontWeight: 'bold',
               }}>
-                ⚡
+                <IconZap size={20} />
               </div>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: '#f8fafc', marginBottom: 3 }}>
@@ -399,7 +311,7 @@ function WidgetMount({ tenant, currentConfig }) {
                 style={{ padding: '6px 14px', fontSize: 12, color: 'var(--accent)', borderColor: 'rgba(167, 139, 250, 0.4)' }}
                 title="Open installation console in Fastn"
               >
-                ↗ Fastn Installation Portal
+                <IconArrowUpRight size={13} /> Fastn Installation Portal
               </a>
               <a
                 href={currentConfig.widgetUrl}
@@ -478,7 +390,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   disabled={testingHubspot}
                   style={{ flex: 1, padding: '7px 12px', fontSize: 12, justifyContent: 'center' }}
                 >
-                  {testingHubspot ? 'Verifying…' : '⚡ Test Connection'}
+                  {testingHubspot ? 'Verifying…' : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconZap size={13} /> Test Connection</span>)}
                 </button>
                 <a
                   href={currentConfig.connectorsUrl || currentConfig.installationUrl}
@@ -497,7 +409,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   }}
                   title="Manage Fastn Connector"
                 >
-                  🔗 Fastn Connector
+                  <IconLink size={13} /> Fastn Connector
                 </a>
               </div>
             </div>
@@ -564,7 +476,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   disabled={testingSlack}
                   style={{ flex: 1, padding: '7px 12px', fontSize: 12, justifyContent: 'center' }}
                 >
-                  {testingSlack ? 'Pinging…' : '⚡ Send Test Ping'}
+                  {testingSlack ? 'Pinging…' : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconZap size={13} /> Send Test Ping</span>)}
                 </button>
                 <a
                   href={currentConfig.connectorsUrl || currentConfig.installationUrl}
@@ -583,7 +495,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   }}
                   title="Manage Fastn Connector"
                 >
-                  🔗 Fastn Connector
+                  <IconLink size={13} /> Fastn Connector
                 </a>
               </div>
             </div>
@@ -663,7 +575,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   }}
                 />
                 <span className="muted" style={{ fontSize: 11 }}>
-                  Target Slack channel for {currentConfig.name}.
+                  Alerts for {currentConfig.company} land in this channel.
                 </span>
               </div>
             </div>
@@ -700,7 +612,7 @@ function WidgetMount({ tenant, currentConfig }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span className="badge ack" style={{ fontSize: 11 }}>Fastn Integration Hub</span>
               <span className="mono" style={{ fontSize: 11, color: '#a1a1aa' }}>
-                Tenant: {currentConfig.endOrgId}
+                Tenant: {currentConfig.company}
               </span>
               <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: 2, border: '1px solid var(--line)' }}>
                 <button
@@ -746,7 +658,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   showToast('Reloaded Fastn frame');
                 }}
               >
-                ↻ Reload Frame
+                <IconRefresh size={12} /> Reload Frame
               </button>
               <a
                 href={fastnTargetUrl}
@@ -755,7 +667,7 @@ function WidgetMount({ tenant, currentConfig }) {
                 className="btn ghost"
                 style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)', borderColor: 'rgba(167, 139, 250, 0.4)' }}
               >
-                ↗ Open in Fastn Console
+                <IconArrowUpRight size={12} /> Open in Fastn Console
               </a>
             </div>
           </div>
@@ -786,7 +698,7 @@ function WidgetMount({ tenant, currentConfig }) {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff' }}>
-                      ⚡
+                      <IconZap size={18} />
                     </div>
                     <div>
                       <strong style={{ fontSize: 14, color: '#f8fafc' }}>Fastn Integration Hub</strong>
@@ -829,7 +741,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   color: '#a1a1aa'
                 }}>
                   <span>
-                    Scoped to Tenant: <strong style={{ color: '#e2e8f0' }}>{currentConfig.name}</strong> (<code className="mono">{currentConfig.endOrgId}</code>)
+                    Scoped to: <strong style={{ color: '#e2e8f0' }}>{currentConfig.company}</strong> ({currentConfig.name})
                   </span>
                   <span className="badge ack" style={{ fontSize: 10 }}>Zero-Leak Multi-Tenant</span>
                 </div>
@@ -871,7 +783,7 @@ function WidgetMount({ tenant, currentConfig }) {
                           onClick={handleTestHubspot}
                           disabled={testingHubspot}
                         >
-                          {testingHubspot ? 'Testing…' : '⚡ Test'}
+                          {testingHubspot ? 'Testing…' : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconZap size={12} /> Test</span>)}
                         </button>
                         <a
                           href={currentConfig.connectorsUrl || currentConfig.installationUrl}
@@ -880,7 +792,7 @@ function WidgetMount({ tenant, currentConfig }) {
                           className="btn ghost"
                           style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)' }}
                         >
-                          ↗ Open in Fastn
+                          <IconArrowUpRight size={12} /> Open in Fastn
                         </a>
                       </div>
                     </div>
@@ -921,7 +833,7 @@ function WidgetMount({ tenant, currentConfig }) {
                           onClick={handleTestSlack}
                           disabled={testingSlack}
                         >
-                          {testingSlack ? 'Pinging…' : '⚡ Ping'}
+                          {testingSlack ? 'Pinging…' : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconZap size={12} /> Ping</span>)}
                         </button>
                         <a
                           href={currentConfig.connectorsUrl || currentConfig.installationUrl}
@@ -930,7 +842,7 @@ function WidgetMount({ tenant, currentConfig }) {
                           className="btn ghost"
                           style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)' }}
                         >
-                          ↗ Open in Fastn
+                          <IconArrowUpRight size={12} /> Open in Fastn
                         </a>
                       </div>
                     </div>
@@ -947,7 +859,7 @@ function WidgetMount({ tenant, currentConfig }) {
                           className="btn ghost"
                           style={{ fontSize: 12, color: 'var(--accent)' }}
                         >
-                          ↗ Browse Fastn Connector Catalog
+                          <IconArrowUpRight size={12} /> Browse Fastn Connector Catalog
                         </a>
                       </div>
                     </div>
@@ -967,14 +879,14 @@ function WidgetMount({ tenant, currentConfig }) {
                   flexWrap: 'wrap',
                   gap: 8
                 }}>
-                  <span>Fastn Runtime Bridge · End-Org: <code className="mono">{currentConfig.endOrgId}</code></span>
+                  <span>Fastn Runtime Bridge · <code className="mono">{currentConfig.company}</code></span>
                   <a
                     href={fastnTargetUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ color: 'var(--accent)', textDecoration: 'none' }}
                   >
-                    Open Full Installation Console ↗
+                    Open Full Installation Console <IconArrowUpRight size={12} />
                   </a>
                 </div>
               </div>
@@ -1093,7 +1005,7 @@ function WidgetMount({ tenant, currentConfig }) {
                 onClick={copyEmbedCode}
                 style={{ padding: '4px 12px', fontSize: 12 }}
               >
-                {copiedCode ? '✓ Copied' : '📋 Copy Code'}
+                {copiedCode ? (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconCheck size={12} /> Copied</span>) : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconCopy size={12} /> Copy embed code</span>)}
               </button>
             </div>
             <pre style={{

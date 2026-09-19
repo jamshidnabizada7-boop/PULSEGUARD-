@@ -1,45 +1,17 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import TopBar from './TopBar';
-
-const PORTFOLIOS = {
-  'tenant-alpha': {
-    name: 'Tenant Alpha (Acme Corp)',
-    company: 'Acme Corp',
-    shortCode: 'AC',
-    endOrgId: '1d599802-f9ad-4d62-830a-e66854c108c3',
-    channel: '#pulseguard-alpha',
-    threshold: 40,
-    totalArr: '$133.7K',
-    avgHealth: 62,
-    primaryCustomerId: 'probe-acme-001',
-    primaryCustomerName: 'Acme Corp',
-    primaryDomain: 'acme-corp.com',
-    accounts: [
-      { id: 'probe-acme-001', name: 'Acme Corp', shortCode: 'AC', domain: 'acme-corp.com', owner: 'J. Nabizada', arr: '$48,000', trend: [72, 70, 66, 60, 52, 45, 38], status: 'HIGH_RISK' },
-      { id: 'acme-002', name: 'Northwind Traders', shortCode: 'NT', domain: 'northwind.com', owner: 'J. Nabizada', arr: '$21,500', trend: [78, 80, 79, 81, 80, 82, 81], status: 'HEALTHY' },
-      { id: 'acme-003', name: 'Contoso Labs', shortCode: 'CL', domain: 'contoso.io', owner: 'J. Nabizada', arr: '$64,200', trend: [65, 66, 64, 67, 66, 68, 67], status: 'HEALTHY' },
-    ],
-  },
-  'tenant-beta': {
-    name: 'Tenant Beta (Globex Exports)',
-    company: 'Globex Exports',
-    shortCode: 'GE',
-    endOrgId: '8d8b6c6c-ec68-454c-99c6-a549b7b7e28b',
-    channel: '#pulseguard-beta',
-    threshold: 35,
-    totalArr: '$177.5K',
-    avgHealth: 64,
-    primaryCustomerId: 'probe-globex-001',
-    primaryCustomerName: 'Globex Exports',
-    primaryDomain: 'globex-exports.com',
-    accounts: [
-      { id: 'probe-globex-001', name: 'Globex Exports', shortCode: 'GE', domain: 'globex-exports.com', owner: 'J. Nabizada', arr: '$92,000', trend: [85, 82, 78, 70, 60, 48, 32], status: 'HIGH_RISK' },
-      { id: 'globex-002', name: 'Initech Logistics', shortCode: 'IL', domain: 'initech-logistics.com', owner: 'J. Nabizada', arr: '$34,000', trend: [80, 81, 79, 83, 82, 84, 85], status: 'HEALTHY' },
-      { id: 'globex-003', name: 'Umbrella Software', shortCode: 'US', domain: 'umbrella-soft.io', owner: 'J. Nabizada', arr: '$51,500', trend: [70, 71, 69, 72, 73, 71, 74], status: 'HEALTHY' },
-    ],
-  },
-};
+import { TENANTS, getTenant, tenantFromSearch } from '../lib/tenants';
+import InfoDot from '../components/InfoDot';
+import {
+  IconAlert,
+  IconCheckCircle,
+  IconDollar,
+  IconHeart,
+  IconZap,
+  IconSpinner,
+  IconCheck,
+  IconUser,
+} from '../components/icons';
 
 function Spark({ points, isRisk, id }) {
   const w = 96, h = 28;
@@ -82,15 +54,7 @@ export default function Home() {
   const [highlightType, setHighlightType] = useState('anomaly');
 
   const syncTenantFromUrl = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const t = p.get('tenant');
-      if (t && PORTFOLIOS[t]) {
-        setTenant(t);
-      } else {
-        setTenant('tenant-alpha');
-      }
-    }
+    setTenant(tenantFromSearch('tenant-alpha'));
   }, []);
 
   useEffect(() => {
@@ -103,15 +67,26 @@ export default function Home() {
     };
   }, [syncTenantFromUrl]);
 
-  function handleTenantChange(newTenant) {
-    if (PORTFOLIOS[newTenant]) {
-      setTenant(newTenant);
-    }
-  }
+  // The assistant can acknowledge risks from chat — keep the table in sync.
+  useEffect(() => {
+    const onChatAck = (e) => {
+      const { tenant: t, customer } = e.detail || {};
+      const acc = (TENANTS[t]?.accounts || []).find((a) => a.name === customer);
+      if (!acc) return;
+      setAckedMap((m) => ({ ...m, [`${t}:${acc.id}`]: true }));
+      if (t === tenant) {
+        setHighlightedRow(acc.id);
+        setHighlightType('ack');
+        setTimeout(() => setHighlightedRow(null), 2800);
+      }
+    };
+    window.addEventListener('pulseguard:acked', onChatAck);
+    return () => window.removeEventListener('pulseguard:acked', onChatAck);
+  }, [tenant]);
 
-  const currentPortfolio = PORTFOLIOS[tenant] || PORTFOLIOS['tenant-alpha'];
+  const t = getTenant(tenant);
 
-  const rows = currentPortfolio.accounts.map((a) => ({
+  const rows = t.accounts.map((a) => ({
     ...a,
     acknowledged: Boolean(ackedMap[`${tenant}:${a.id}`]),
   }));
@@ -119,9 +94,9 @@ export default function Home() {
   async function simulate() {
     setBusy(true);
     setToast(null);
-    const primary = currentPortfolio.accounts[0];
-    const dropPct = tenant === 'tenant-beta' ? 48 : 52;
-    const health = tenant === 'tenant-beta' ? 32 : 38;
+    const primary = t.accounts[0];
+    const dropPct = t.dropPct;
+    const health = t.dropHealth;
 
     setAckedMap((m) => {
       const next = { ...m };
@@ -147,7 +122,7 @@ export default function Home() {
       });
       const j = await res.json();
       if (j.ok) {
-        setToast(`⚡ Anomaly dispatched to Fastn (${j.via || 'live runtime'}) — alert queued for ${currentPortfolio.channel}`);
+        setToast(`Anomaly sent — PulseGuard is diagnosing ${primary.name} and alerting ${t.channel}`);
 
         if (typeof window !== 'undefined') {
           try {
@@ -156,7 +131,7 @@ export default function Home() {
               id: `sim_${Date.now().toString(36)}`,
               wf: 'pulseguard-risk-engine-v2',
               tenant,
-              endOrgId: currentPortfolio.endOrgId,
+              endOrgId: t.endOrgId,
               customer: `${primary.name} (${primary.id})`,
               status: 'RISK_ESCALATED',
               tier: 'instant',
@@ -191,7 +166,7 @@ export default function Home() {
       setHighlightedRow(accId);
       setHighlightType('ack');
       setTimeout(() => setHighlightedRow(null), 2800);
-      setToast(`✅ Churn risk for ${acc.name} acknowledged — CRM timeline updated`);
+      setToast(`Risk for ${acc.name} acknowledged — their CRM timeline was updated`);
 
       if (typeof window !== 'undefined') {
         try {
@@ -200,7 +175,7 @@ export default function Home() {
             id: `ack_${Date.now().toString(36)}`,
             wf: 'pulseguard-ack-loop',
             tenant,
-            endOrgId: currentPortfolio.endOrgId,
+            endOrgId: t.endOrgId,
             customer: acc.name,
             status: 'ACKNOWLEDGED',
             tier: 'instant',
@@ -222,56 +197,63 @@ export default function Home() {
 
   return (
     <main>
-      <TopBar active="/" tenant={tenant} onTenantChange={handleTenantChange} />
       <div className="wrap">
-        {/* Page Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+        {/* Page header */}
+        <div className="page-head">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <h1 style={{ marginBottom: 0 }}>Customer Health &amp; <span className="grad-text">Retention Loop</span></h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
+              <h1 style={{ marginBottom: 0 }}>
+                Customer Health &amp; <span className="grad-text">Retention Loop</span>
+              </h1>
               <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.12)', color: 'var(--accent)', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
-                {currentPortfolio.company}
+                {t.company}
               </span>
             </div>
             <p className="sub" style={{ marginBottom: 0 }}>
-              Autonomous closed-loop churn prevention powered by Fastn workflows · Telemetry → Risk Engine → CRM Timeline → Interactive Slack Card.
+              PulseGuard watches how your customers use the product. When usage drops suddenly, it
+              diagnoses the account, updates your CRM, and alerts your team — before the customer
+              is gone.
             </p>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-            <span className="env-chip">
-              Fastn Org: <strong>personal_dc05...ba84</strong>
-            </span>
-            <span className="env-chip">
-              End-Org: <strong>{currentPortfolio.endOrgId}</strong>
-            </span>
-          </div>
+          <button className="btn btn-simulate" onClick={simulate} disabled={busy}>
+            {busy ? (
+              <>
+                <IconSpinner size={16} strokeWidth={2.5} />
+                <span>Contacting PulseGuard…</span>
+              </>
+            ) : (
+              <>
+                <IconZap size={16} strokeWidth={2.25} />
+                <span>Simulate Anomaly</span>
+              </>
+            )}
+          </button>
         </div>
 
-        {/* 4 KPI Cards */}
+        {/* KPI cards */}
         <div className="kpis">
           <div className="kpi">
             <div className="l">
-              <span>Accounts at Risk</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--risk)' }}>
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
+              <span>Accounts at risk</span>
+              <span className="icon-chip risk">
+                <IconAlert size={15} />
+              </span>
             </div>
-            <div className={`n ${atRisk > 0 ? 'risk' : 'ok'}`}>
-              {atRisk}
-            </div>
+            <div className={`n ${atRisk > 0 ? 'risk' : 'ok'}`}>{atRisk}</div>
             <div className="sub-tag">
               {atRisk > 0 ? (
                 <>
                   <span className="badge-dot pulse" style={{ color: 'var(--risk)' }} />
-                  <span>Threshold drop detected (&gt;{currentPortfolio.threshold}%)</span>
+                  <span>
+                    Usage fell past the {t.threshold}% alert line
+                    <InfoDot text={`If weekly usage drops by more than ${t.threshold}%, PulseGuard treats it as churn risk and starts the alert loop automatically.`} />
+                  </span>
                 </>
               ) : (
                 <>
                   <span className="badge-dot" style={{ color: 'var(--ok)' }} />
-                  <span>All anomalies mitigated</span>
+                  <span>All anomalies handled</span>
                 </>
               )}
             </div>
@@ -279,102 +261,89 @@ export default function Home() {
 
           <div className="kpi">
             <div className="l">
-              <span>Healthy Accounts</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--ok)' }}>
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
+              <span>Healthy accounts</span>
+              <span className="icon-chip ok">
+                <IconCheckCircle size={15} />
+              </span>
             </div>
             <div className="n ok">{rows.length - atRisk}</div>
             <div className="sub-tag">
-              <span>Normal usage &amp; active retention</span>
+              <span>Normal usage, no action needed</span>
             </div>
           </div>
 
           <div className="kpi">
             <div className="l">
-              <span>Guarded ARR</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent)' }}>
-                <line x1="12" y1="1" x2="12" y2="23" />
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
+              <span>Revenue protected</span>
+              <span className="icon-chip accent">
+                <IconDollar size={15} />
+              </span>
             </div>
-            <div className="n">{currentPortfolio.totalArr}</div>
+            <div className="n">{t.totalArr}</div>
             <div className="sub-tag">
-              <span>Protected portfolio revenue</span>
+              <span>
+                Contract value under watch
+                <InfoDot text="The total annual contract value of the accounts PulseGuard is monitoring for this tenant." />
+              </span>
             </div>
           </div>
 
           <div className="kpi">
             <div className="l">
-              <span>Avg Health Score</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--warn)' }}>
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-              </svg>
+              <span>Avg health score</span>
+              <span className="icon-chip warn">
+                <IconHeart size={15} />
+              </span>
             </div>
             <div className="n warn">
-              {currentPortfolio.avgHealth}
+              {t.avgHealth}
               <span className="muted" style={{ fontSize: 15, fontWeight: 500 }}>/100</span>
             </div>
             <div className="sub-tag">
-              <span>Weighted 7-day engagement index</span>
+              <span>
+                Average across your accounts
+                <InfoDot text="Health blends product usage, engagement and recency into one 0–100 score. 70+ is comfortable; below 50 usually means someone stopped logging in." />
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Monitored Accounts Card */}
+        {/* Monitored accounts */}
         <div className="card">
           <h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <span>Monitored Accounts ({rows.length})</span>
-              <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent2)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
-                Alert Target: {currentPortfolio.channel}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span>Monitored accounts ({rows.length})</span>
               <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.12)', color: 'var(--accent)', border: '1px solid rgba(139, 92, 246, 0.28)' }}>
-                Threshold: {currentPortfolio.threshold}% WoW
+                Alerts go to {t.channel}
               </span>
             </div>
-
-            {/* Prominent High-Impact CTA Button */}
-            <button className="btn btn-simulate" onClick={simulate} disabled={busy}>
-              {busy ? (
-                <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                  </svg>
-                  <span>Dispatching to Fastn…</span>
-                </>
-              ) : (
-                <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                  </svg>
-                  <span>Simulate Anomaly ({currentPortfolio.primaryCustomerName})</span>
-                </>
-              )}
-            </button>
+            <span className="muted" style={{ fontSize: 12.5, fontWeight: 450 }}>
+              Alerts fire when weekly usage drops {t.threshold}%
+            </span>
           </h2>
 
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Account &amp; Domain</th>
-                  <th>CS Owner</th>
-                  <th>Annual Contract (ARR)</th>
-                  <th>7-Day Health Trend</th>
-                  <th>Health Status</th>
-                  <th>Autonomous Action</th>
+                  <th>Account</th>
+                  <th>Owner</th>
+                  <th>Contract value</th>
+                  <th>
+                    Health · last 7 days
+                    <InfoDot text="Each line is one account's health score over the past week. A falling red line is an early churn signal." />
+                  </th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((a) => {
-                  const isHighRisk = a.status === 'HIGH_RISK';
+                  const isActiveRisk = a.status === 'HIGH_RISK' && !a.acknowledged;
                   const currentScore = a.trend[a.trend.length - 1];
                   const prevScore = a.trend[a.trend.length - 2];
                   const deltaPct = prevScore ? Math.round(((currentScore - prevScore) / prevScore) * 100) : 0;
                   const deltaClass = deltaPct <= -5 ? 'down' : deltaPct >= 5 ? 'up' : 'flat';
-                  const isActiveRisk = isHighRisk && !a.acknowledged;
 
                   return (
                     <tr
@@ -383,21 +352,16 @@ export default function Home() {
                     >
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div className="company-avatar">
-                            {a.shortCode || a.name.substring(0, 2).toUpperCase()}
-                          </div>
+                          <div className="company-avatar">{a.shortCode || a.name.substring(0, 2).toUpperCase()}</div>
                           <div>
-                            <div style={{ fontWeight: 700, color: '#fff', fontSize: 14 }}>{a.name}</div>
+                            <div style={{ fontWeight: 650, color: '#fff', fontSize: 14 }}>{a.name}</div>
                             <div className="muted mono" style={{ fontSize: 12 }}>{a.domain}</div>
                           </div>
                         </div>
                       </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-dim)' }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--muted)' }}>
-                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                            <circle cx="12" cy="7" r="4" />
-                          </svg>
+                          <IconUser size={14} style={{ color: 'var(--muted)' }} />
                           <span>{a.owner}</span>
                         </div>
                       </td>
@@ -407,29 +371,25 @@ export default function Home() {
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <Spark points={a.trend} isRisk={isActiveRisk} id={a.id} />
-                          <span className="mono" style={{
-                            fontWeight: 600,
-                            fontSize: 13,
-                            color: isActiveRisk ? 'var(--risk)' : 'var(--ok)'
-                          }}>
+                          <span className="mono" style={{ fontWeight: 600, fontSize: 13, color: isActiveRisk ? 'var(--risk)' : 'var(--ok)' }}>
                             {currentScore}
                           </span>
                           <span className={`delta ${deltaClass}`}>
-                            {deltaPct < 0 ? '▾' : '▴'} {Math.abs(deltaPct)}% WoW
+                            {deltaPct < 0 ? '▾' : '▴'} {Math.abs(deltaPct)}% this week
                           </span>
                         </div>
                       </td>
                       <td>
-                        {isHighRisk ? (
+                        {a.status === 'HIGH_RISK' ? (
                           a.acknowledged ? (
-                            <span className="badge ack">
+                            <span className="badge ack" title="A team member acknowledged this risk — the CRM was updated.">
                               <span className="badge-dot" />
-                              ACKNOWLEDGED
+                              HANDLED
                             </span>
                           ) : (
-                            <span className="badge risk">
+                            <span className="badge risk" title="Weekly usage dropped past the alert line — CRM noted, Slack alerted.">
                               <span className="badge-dot pulse" />
-                              HIGH RISK
+                              NEEDS ATTENTION
                             </span>
                           )
                         ) : (
@@ -440,32 +400,18 @@ export default function Home() {
                         )}
                       </td>
                       <td>
-                        {isHighRisk && !a.acknowledged ? (
-                          <button
-                            className="btn ghost"
-                            style={{
-                              padding: '6px 14px',
-                              fontSize: 12,
-                              color: '#fff',
-                              background: 'rgba(139, 92, 246, 0.14)',
-                              borderColor: 'rgba(139, 92, 246, 0.45)'
-                            }}
-                            onClick={() => acknowledge(a.id)}
-                          >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent)' }}>
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            Acknowledge Risk
+                        {isActiveRisk ? (
+                          <button className="btn ghost sm" onClick={() => acknowledge(a.id)}>
+                            <IconCheck size={13} style={{ color: 'var(--accent)' }} />
+                            Acknowledge risk
                           </button>
                         ) : a.acknowledged ? (
                           <span className="mono muted" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--ok)' }}>
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
+                            <IconCheck size={13} style={{ color: 'var(--ok)' }} />
                             Synced to CRM
                           </span>
                         ) : (
-                          <span className="muted mono" style={{ fontSize: 12 }}>Guarded</span>
+                          <span className="muted" style={{ fontSize: 12.5 }}>Watched automatically</span>
                         )}
                       </td>
                     </tr>
@@ -476,59 +422,70 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Visual Architecture Closed-Loop Explainer Card */}
+        {/* How it works */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 10 }}>
-            <h2 style={{ margin: 0 }}>Autonomous Closed-Loop Retention Architecture</h2>
+            <h2 style={{ margin: 0 }}>How the loop protects your revenue</h2>
             <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--ok)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-              Fastn Multi-Tenant Workflow Mesh
+              Fully automatic · per-tenant isolated
             </span>
           </div>
           <p className="muted" style={{ fontSize: 13.5, marginBottom: 16 }}>
-            Every step in the churn remediation cycle is executed and governed across Fastn connectors without data leakage between tenants.
+            No rules to configure. When something looks wrong, the right people find out — with the
+            diagnosis already written down.
           </p>
 
           <div className="pipeline-grid">
             <div className="pipeline-step">
-              <div className="step-num">Step 01</div>
-              <div className="step-title">Telemetry Ingestion</div>
+              <div className="step-num">Step 1</div>
+              <div className="step-title">Usage drops</div>
               <div className="step-desc">
-                Product telemetry hits Fastn carrying <span className="mono" style={{ color: 'var(--accent)' }}>x-end-org-id: {currentPortfolio.endOrgId}</span>.
+                A customer's weekly usage falls by more than the {t.threshold}% alert line.
               </div>
             </div>
 
             <div className="pipeline-step">
-              <div className="step-num">Step 02</div>
-              <div className="step-title">Risk Engine Eval</div>
+              <div className="step-num">Step 2</div>
+              <div className="step-title">Risk detected</div>
               <div className="step-desc">
-                Workflow <span className="mono" style={{ color: '#fff' }}>pulseguard-risk-engine-v2</span> evaluates engagement drop against threshold (<strong>{currentPortfolio.threshold}%</strong>).
+                PulseGuard evaluates the drop in seconds — and checks it isn't a false alarm.
               </div>
             </div>
 
             <div className="pipeline-step">
-              <div className="step-num">Step 03</div>
-              <div className="step-title">HubSpot CRM Note</div>
+              <div className="step-num">Step 3</div>
+              <div className="step-title">CRM updated</div>
               <div className="step-desc">
-                Fastn Unified CRM API searches account and appends automated root-cause timeline diagnosis.
+                A diagnosis note lands on the customer's CRM timeline — no one had to write it.
               </div>
             </div>
 
             <div className="pipeline-step">
-              <div className="step-num">Step 04</div>
-              <div className="step-title">Slack Action Card</div>
+              <div className="step-num">Step 4</div>
+              <div className="step-title">Team alerted</div>
               <div className="step-desc">
-                Dispatches rich Block Kit alert card with metrics to target channel <strong style={{ color: 'var(--accent)' }}>{currentPortfolio.channel}</strong>.
+                A clear alert card reaches {t.channel} with an Acknowledge button.
               </div>
             </div>
 
             <div className="pipeline-step">
-              <div className="step-num">Step 05</div>
-              <div className="step-title">Fastn Ack Loop</div>
+              <div className="step-num">Step 5</div>
+              <div className="step-title">Loop closed</div>
               <div className="step-desc">
-                Clicking &quot;Acknowledge&quot; triggers <span className="mono" style={{ color: '#fff' }}>pulseguard-ack-loop</span>, closing the loop across CRM and dashboard.
+                One click — here or in Slack — records the follow-up in the CRM and clears the alert.
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Status footer */}
+        <div className="status-footer">
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span className="badge-dot" style={{ color: 'var(--ok)' }} />
+            All systems operational
+          </span>
+          <span>Alerts to <strong>{t.channel}</strong></span>
+          <span>Isolated workspace: <strong>{t.name}</strong></span>
         </div>
       </div>
 

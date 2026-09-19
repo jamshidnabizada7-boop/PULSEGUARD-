@@ -1,6 +1,42 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import TopBar from '../TopBar';
+import { TENANT_LIST, getTenant, tenantFromSearch, pushTenant, FASTN_ORG_ID, WIDGET_ID, WORKFLOWS } from '../../lib/tenants';
+import InfoDot from '../../components/InfoDot';
+import {
+  IconActivity,
+  IconAlert,
+  IconRefresh,
+  IconZap,
+  IconSpinner,
+  IconCheckCircle,
+  IconChevronDown,
+  IconShield,
+} from '../../components/icons';
+
+const HUMAN_STATUS = {
+  RISK_ESCALATED: 'Alert sent',
+  ACKNOWLEDGED: 'Risk handled',
+  DEDUPLICATED: 'Duplicate blocked',
+  HEALTHY: 'All good',
+};
+
+const HUMAN_VIA = {
+  'fastn-runtime': 'Fastn runtime',
+  'fastn-state-engine': 'Fastn runtime',
+  'live-webhook-trigger': 'Live webhook',
+  'live-execute-endpoint': 'Live execution',
+  'live-ack-workflow': 'Live execution',
+  'api-ack': 'Dashboard',
+  'api-telemetry': 'Dashboard',
+  'simulated-dispatch': 'Demo simulation',
+  'local-ack-fallback': 'Recorded locally',
+};
+
+function humanVia(v) {
+  if (!v) return 'Fastn runtime';
+  const clean = v.replace('-fallback', '');
+  return HUMAN_VIA[clean] || clean;
+}
 
 function formatTimeAgo(isoString) {
   if (!isoString) return 'recently';
@@ -24,13 +60,10 @@ export default function Runs() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [triggering, setTriggering] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [showPlatform, setShowPlatform] = useState(false);
 
   const syncTenantFromUrl = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const t = p.get('tenant');
-      setTenant(t && (t === 'tenant-alpha' || t === 'tenant-beta') ? t : 'all');
-    }
+    setTenant(tenantFromSearch('all'));
   }, []);
 
   useEffect(() => {
@@ -47,16 +80,7 @@ export default function Runs() {
 
   const handleTenantChange = useCallback((nextTenant) => {
     setTenant(nextTenant);
-    if (typeof window !== 'undefined') {
-      const u = new URL(window.location.href);
-      if (nextTenant === 'all') {
-        u.searchParams.delete('tenant');
-      } else {
-        u.searchParams.set('tenant', nextTenant);
-      }
-      window.history.pushState({}, '', u.toString());
-      window.dispatchEvent(new CustomEvent('tenantchange', { detail: nextTenant }));
-    }
+    pushTenant(nextTenant);
   }, []);
 
   const fetchRuns = useCallback(async () => {
@@ -103,26 +127,20 @@ export default function Runs() {
     return () => clearInterval(timer);
   }, [fetchRuns]);
 
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setTick((v) => v + 1), 2000);
-    return () => clearInterval(t);
-  }, []);
-
   async function triggerRun() {
     setTriggering(true);
     const targetTenant = tenant === 'all' || tenant === 'tenant-alpha' ? 'tenant-alpha' : 'tenant-beta';
-    const isAlpha = targetTenant === 'tenant-alpha';
+    const t = getTenant(targetTenant);
     try {
       const res = await fetch('/api/telemetry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customerId: isAlpha ? 'probe-acme-001' : 'probe-globex-001',
-          customerDomain: isAlpha ? 'acme-corp.com' : 'globex-exports.com',
-          healthScore: isAlpha ? 36 : 30,
-          usageDropPct: isAlpha ? 54 : 49,
-          metricSummary: `Dynamic on-demand anomaly triggered for ${isAlpha ? 'Acme Corp' : 'Globex Exports'}.`,
+          customerId: t.primaryCustomerId,
+          customerDomain: t.primaryDomain,
+          healthScore: t.dropHealth,
+          usageDropPct: t.dropPct,
+          metricSummary: `On-demand anomaly triggered for ${t.company}.`,
           tenant: targetTenant,
         }),
       });
@@ -135,11 +153,11 @@ export default function Runs() {
             id: `sim_${Date.now().toString(36)}`,
             wf: 'pulseguard-risk-engine-v2',
             tenant: targetTenant,
-            endOrgId: isAlpha ? '1d599802-f9ad-4d62-830a-e66854c108c3' : '8d8b6c6c-ec68-454c-99c6-a549b7b7e28b',
-            customer: isAlpha ? 'Acme Corp (probe-acme-001)' : 'Globex Exports (probe-globex-001)',
+            endOrgId: t.endOrgId,
+            customer: `${t.company} (${t.primaryCustomerId})`,
             status: 'RISK_ESCALATED',
             tier: 'instant',
-            steps: `usageDrop ${isAlpha ? 54 : 49}% >= threshold · crm-timeline-noted · slack-card-queued`,
+            steps: `usageDrop ${t.dropPct}% >= threshold · crm-timeline-noted · slack-card-queued`,
             at: new Date().toISOString(),
             via: (j && j.via) || 'simulated-dispatch-fallback',
           };
@@ -168,167 +186,144 @@ export default function Runs() {
 
   return (
     <main>
-      <TopBar active="/runs" tenant={tenant} onTenantChange={handleTenantChange} />
       <div className="wrap">
-        {/* Page Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+        {/* Page header */}
+        <div className="page-head">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <h1>Workflow Execution Activity</h1>
+              <h1 style={{ marginBottom: 0 }}>
+                Activity <span className="grad-text">&amp; proof</span>
+              </h1>
               <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.12)', color: 'var(--ok)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                 <span className="badge-dot pulse" />
-                Live Fastn Event Mesh
+                Live
               </span>
             </div>
             <p className="sub" style={{ marginBottom: 0 }}>
-              Audit traces across the Fastn runtime engine. Mirrors execution telemetry in Fastn Studio under <strong>Activity → Executions</strong>.
+              Every automated action PulseGuard took — newest first. Each row is one complete run:
+              what happened, when, and every step in between.
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <button className="btn btn-simulate" onClick={triggerRun} disabled={triggering} style={{ fontSize: 13, padding: '9px 18px' }}>
+            <button className="btn ghost" onClick={fetchRuns} style={{ fontSize: 13, padding: '9px 14px' }}>
+              <IconRefresh size={14} />
+              Refresh
+            </button>
+            <button className="btn btn-simulate" onClick={triggerRun} disabled={triggering} style={{ fontSize: 13.5 }}>
               {triggering ? (
                 <>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                  </svg>
-                  <span>Dispatching…</span>
+                  <IconSpinner size={15} strokeWidth={2.5} />
+                  <span>Running…</span>
                 </>
               ) : (
                 <>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                  </svg>
-                  <span>Simulate Live Execution</span>
+                  <IconZap size={15} strokeWidth={2.25} />
+                  <span>Simulate a run</span>
                 </>
               )}
             </button>
-            <button className="btn ghost" onClick={fetchRuns} style={{ fontSize: 13, padding: '9px 14px' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-                <path d="M16 21h5v-5" />
-              </svg>
-              Refresh
-            </button>
           </div>
         </div>
 
-        {/* 4 Execution KPI Cards */}
+        {/* KPI cards */}
         <div className="kpis">
           <div className="kpi">
             <div className="l">
-              <span>Total Executions</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent)' }}>
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-              </svg>
+              <span>Total runs</span>
+              <span className="icon-chip accent"><IconActivity size={15} /></span>
             </div>
             <div className="n">{runs.length}</div>
-            <div className="sub-tag">
-              <span>All recorded workflow triggers</span>
-            </div>
+            <div className="sub-tag"><span>Since this demo started</span></div>
           </div>
 
           <div className="kpi">
             <div className="l">
-              <span>Risk Escalations</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--risk)' }}>
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-              </svg>
+              <span>Alerts sent</span>
+              <span className="icon-chip risk"><IconAlert size={15} /></span>
             </div>
             <div className="n risk">{escalatedCount}</div>
-            <div className="sub-tag">
-              <span>High-risk threshold breaches</span>
-            </div>
+            <div className="sub-tag"><span>Teams notified in time</span></div>
           </div>
 
           <div className="kpi">
             <div className="l">
-              <span>Deduplicated</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--warn)' }}>
-                <circle cx="12" cy="12" r="10" />
-                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-              </svg>
+              <span>Duplicates blocked</span>
+              <span className="icon-chip warn"><IconShield size={15} /></span>
             </div>
             <div className="n warn">{dedupCount}</div>
-            <div className="sub-tag">
-              <span>Guarded suppression window</span>
-            </div>
+            <div className="sub-tag"><span>No spam — same problem, one alert</span></div>
           </div>
 
           <div className="kpi">
             <div className="l">
-              <span>Acked / Healthy</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--ok)' }}>
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
+              <span>Resolved or healthy</span>
+              <span className="icon-chip ok"><IconCheckCircle size={15} /></span>
             </div>
             <div className="n ok">{ackCount + healthyCount}</div>
-            <div className="sub-tag">
-              <span>Resolved or steady telemetry</span>
-            </div>
+            <div className="sub-tag"><span>Handled or nothing to do</span></div>
           </div>
         </div>
 
-        {/* Execution Stream Card */}
+        {/* Execution stream */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <h2 style={{ margin: 0 }}>Live Execution Stream</h2>
+              <h2 style={{ margin: 0 }}>Run history</h2>
               <span className="badge ack" style={{ fontSize: 11.5 }}>
                 <span className="badge-dot pulse" />
-                Polling 5s
+                Auto-refreshes
               </span>
             </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 10, padding: 3, border: '1px solid var(--line)' }}>
-                <button
-                  className={`btn ghost ${tenant === 'all' ? 'active' : ''}`}
-                  style={{ padding: '5px 12px', fontSize: 12, border: 'none', background: tenant === 'all' ? 'rgba(255, 255, 255, 0.08)' : 'transparent', color: tenant === 'all' ? '#fff' : 'var(--muted)' }}
-                  onClick={() => handleTenantChange('all')}
-                >
-                  All Tenants
-                </button>
-                <button
-                  className={`btn ghost ${tenant === 'tenant-alpha' ? 'active' : ''}`}
-                  style={{ padding: '5px 12px', fontSize: 12, border: 'none', background: tenant === 'tenant-alpha' ? 'rgba(139, 92, 246, 0.16)' : 'transparent', color: tenant === 'tenant-alpha' ? 'var(--accent)' : 'var(--muted)' }}
-                  onClick={() => handleTenantChange('tenant-alpha')}
-                >
-                  Tenant Alpha
-                </button>
-                <button
-                  className={`btn ghost ${tenant === 'tenant-beta' ? 'active' : ''}`}
-                  style={{ padding: '5px 12px', fontSize: 12, border: 'none', background: tenant === 'tenant-beta' ? 'rgba(167, 139, 250, 0.12)' : 'transparent', color: tenant === 'tenant-beta' ? 'var(--accent2)' : 'var(--muted)' }}
-                  onClick={() => handleTenantChange('tenant-beta')}
-                >
-                  Tenant Beta
-                </button>
+              <div className="seg">
+                {[['all', 'All tenants'], ['tenant-alpha', 'Tenant Alpha'], ['tenant-beta', 'Tenant Beta']].map(
+                  ([id, label]) => (
+                    <button
+                      key={id}
+                      className={`seg-btn ${tenant === id ? 'active' : ''}`}
+                      onClick={() => handleTenantChange(id)}
+                    >
+                      {label}
+                    </button>
+                  )
+                )}
               </div>
-              <button className="btn ghost" onClick={clearHistory} style={{ fontSize: 11.5, padding: '6px 10px' }} title="Reset local demo events">
-                Clear Local
+              <button className="btn ghost sm" onClick={clearHistory} title="Reset local demo events">
+                Reset demo history
               </button>
             </div>
           </div>
 
           {loading ? (
-            <div style={{ padding: 48, textAlign: 'center', color: 'var(--muted)' }}>
-              <div style={{ width: 28, height: 28, border: '3px solid var(--line)', borderTopColor: 'var(--accent)', borderRadius: '50%', margin: '0 auto 12px', animation: 'spin 1s linear infinite' }} />
-              Loading Fastn execution traces…
+            <div className="skeleton-rows">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="skeleton-row">
+                  <div className="skeleton sk-b" />
+                  <div className="skeleton sk-b" style={{ width: '22%' }} />
+                  <div className="skeleton sk-b" style={{ width: '18%' }} />
+                  <div className="skeleton sk-b" style={{ width: '14%' }} />
+                </div>
+              ))}
+              <div className="muted" style={{ padding: '10px 16px 4px', fontSize: 12.5, textAlign: 'center' }}>
+                Loading activity…
+              </div>
             </div>
           ) : (
             <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Timestamp</th>
-                    <th>Tenant &amp; Account</th>
-                    <th>Fastn Workflow</th>
+                    <th>When</th>
+                    <th>Tenant &amp; account</th>
+                    <th>Workflow</th>
                     <th>Outcome</th>
-                    <th>Runtime Mode</th>
-                    <th>Step Execution Trace</th>
+                    <th>Ran on</th>
+                    <th>
+                      Execution trace
+                      <InfoDot text="Every internal step of the run, in order — this is the proof that the automation really executed end to end." />
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -343,13 +338,12 @@ export default function Runs() {
                         ? 'ack'
                         : 'risk';
 
-                    // Parse steps into visual breadcrumb items if separated by dots or arrows
                     const stepList = (r.steps || '').split(/·|->|→/).map((s) => s.trim()).filter(Boolean);
 
                     return (
                       <tr key={r.id || i}>
                         <td>
-                          <div style={{ fontWeight: 700, color: '#fff' }}>
+                          <div style={{ fontWeight: 600, color: '#fff' }}>
                             {mounted ? formatTimeAgo(r.at) : 'recently'}
                           </div>
                           <div className="muted mono" style={{ fontSize: 11 }}>
@@ -363,33 +357,30 @@ export default function Runs() {
                               style={{
                                 fontSize: 10,
                                 padding: '2px 8px',
-                                background: isAlpha ? 'rgba(139, 92, 246, 0.12)' : 'rgba(167, 139, 250, 0.1)',
+                                background: isAlpha ? 'rgba(139, 92, 246, 0.12)' : 'rgba(34, 211, 238, 0.1)',
                                 color: isAlpha ? 'var(--accent)' : 'var(--accent2)',
-                                border: isAlpha ? '1px solid rgba(139, 92, 246, 0.28)' : '1px solid rgba(167, 139, 250, 0.25)',
+                                border: isAlpha ? '1px solid rgba(139, 92, 246, 0.28)' : '1px solid rgba(34, 211, 238, 0.25)',
                               }}
                             >
                               {isAlpha ? 'Alpha' : 'Beta'}
                             </span>
-                            <strong style={{ color: '#fff' }}>{r.customer || (isAlpha ? 'Acme Corp' : 'Globex Exports')}</strong>
-                          </div>
-                          <div className="mono muted" style={{ fontSize: 11, marginTop: 2 }}>
-                            {r.endOrgId || (isAlpha ? '1d599802...108c3' : '8d8b6c6c...7b7e28b')}
+                            <strong style={{ color: '#fff' }}>{(r.customer || '').split(' (')[0] || (isAlpha ? 'Acme Corp' : 'Globex Exports')}</strong>
                           </div>
                         </td>
                         <td>
-                          <span className="mono" style={{ color: 'var(--accent-light)', fontSize: 12.5, fontWeight: 600 }}>
-                            {r.wf || 'pulseguard-risk-engine-v2'}
+                          <span className="mono" style={{ color: 'var(--accent-light)', fontSize: 12, fontWeight: 550 }}>
+                            {r.wf === 'pulseguard-ack-loop' ? 'Acknowledgement loop' : 'Risk engine'}
                           </span>
                         </td>
                         <td>
-                          <span className={`badge ${badgeClass}`}>
+                          <span className={`badge ${badgeClass}`} title={`Fastn status: ${r.status}`}>
                             <span className="badge-dot" />
-                            {r.status}
+                            {HUMAN_STATUS[r.status] || r.status}
                           </span>
                         </td>
                         <td>
                           <span className="badge" style={{ background: 'rgba(255, 255, 255, 0.05)', color: 'var(--muted)', fontSize: 11 }}>
-                            {r.via ? r.via.replace('-fallback', '') : 'fastn-live'}
+                            {humanVia(r.via)}
                           </span>
                         </td>
                         <td>
@@ -422,9 +413,18 @@ export default function Runs() {
                   })}
                   {runs.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--muted)' }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', marginBottom: 4 }}>No execution traces recorded for this filter</div>
-                        <div style={{ fontSize: 12 }}>Click &quot;Simulate Live Execution&quot; above to dispatch a test event through the Fastn runtime.</div>
+                      <td colSpan={6}>
+                        <div className="empty-state">
+                          <span className="empty-icon"><IconActivity size={22} /></span>
+                          <div className="empty-title">No activity yet</div>
+                          <div className="empty-sub">
+                            Simulate an anomaly to watch PulseGuard detect it, update the CRM, and alert your team.
+                          </div>
+                          <button className="btn btn-simulate" onClick={triggerRun} disabled={triggering} style={{ marginTop: 14 }}>
+                            <IconZap size={15} />
+                            Simulate a run
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -436,13 +436,59 @@ export default function Runs() {
           <div style={{ marginTop: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, color: 'var(--muted)', flexWrap: 'wrap', gap: 8 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <span className="badge-dot" style={{ color: 'var(--accent)' }} />
-              Wired to <span className="mono" style={{ color: '#cbd5e1' }}>fastnPlatform__listWorkflowExecutions</span> and local event mesh
+              Mirrors the workflow history in the Fastn studio, plus local demo events
             </span>
             <span>
-              Last polled:{' '}
-              <strong style={{ color: '#cbd5e1' }}>{mounted && lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'Connecting…'}</strong>
+              Last checked:{' '}
+              <strong style={{ color: 'var(--text-dim)' }}>
+                {mounted && lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'Connecting…'}
+              </strong>
             </span>
           </div>
+        </div>
+
+        {/* Platform details — everything technical lives here */}
+        <div className="card">
+          <button className="platform-toggle" onClick={() => setShowPlatform((v) => !v)} aria-expanded={showPlatform}>
+            <IconChevronDown size={15} className={showPlatform ? 'open' : ''} />
+            <span>Platform details</span>
+            <span className="muted" style={{ fontWeight: 450, fontSize: 12 }}>
+              IDs and workflow names — for engineers and support
+            </span>
+          </button>
+
+          {showPlatform && (
+            <div className="platform-grid">
+              <div className="platform-item">
+                <div className="platform-k">Fastn organization</div>
+                <div className="platform-v mono">{FASTN_ORG_ID}</div>
+              </div>
+              <div className="platform-item">
+                <div className="platform-k">Embed widget</div>
+                <div className="platform-v mono">{WIDGET_ID}</div>
+              </div>
+              <div className="platform-item">
+                <div className="platform-k">Risk engine workflow</div>
+                <div className="platform-v mono">
+                  {WORKFLOWS.riskEngine.name} ({WORKFLOWS.riskEngine.id})
+                </div>
+              </div>
+              <div className="platform-item">
+                <div className="platform-k">Acknowledgement workflow</div>
+                <div className="platform-v mono">
+                  {WORKFLOWS.ackLoop.name} ({WORKFLOWS.ackLoop.id})
+                </div>
+              </div>
+              {TENANT_LIST.map((t) => (
+                <div className="platform-item" key={t.id}>
+                  <div className="platform-k">{t.company}</div>
+                  <div className="platform-v mono">
+                    {t.endOrgId} · {t.installationId}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>

@@ -1,4 +1,6 @@
 import './globals.css';
+import Sidebar from './Sidebar';
+import AssistantPanel from '../components/AssistantPanel';
 
 export const metadata = {
   title: 'PulseGuard — Autonomous SaaS Retention & Churn Prevention',
@@ -16,7 +18,13 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <div className="shell">
+          <Sidebar />
+          <div className="main-col">{children}</div>
+        </div>
+        <AssistantPanel />
+      </body>
     </html>
   );
 }
