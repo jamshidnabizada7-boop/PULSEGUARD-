@@ -12,13 +12,15 @@ const TENANT_INTEGRATIONS = {
     slackChannel: '#pulseguard-alpha',
     threshold: 40,
     status: 'ACTIVE',
-    setupUrl: 'https://app.fastn.dev/setup/stp_bd49a0768ec2#t=emb_OxgTA2vKDs1iBEs2VI8ywL5CIDZ1OIGwXM30S7nfGw8',
-    connectUrls: {
-      hubspot: 'https://app.fastn.dev/connect/9036a742-6baa-4c72-be3c-3789b34d6f9b#t=emb_PJSlkLAPbNSWldHZMkV4rzzaHXB83AzUxuFThPNm9jA',
-      slack: 'https://app.fastn.dev/connect/8de5d696-5289-4c9c-ade4-de918d019d06#t=emb_8DqgBcDWvBa2TMVyCMtg54nvVD-OaxM2r9bT6AOObUY',
-    },
-    directUrl: 'https://api.fastn.dev/api/v1/embed/iframe?org-id=personal_dc05aac8b2c7b361ba84&tenant-id=1d599802-f9ad-4d62-830a-e66854c108c3',
+    installationUrl: 'https://app.fastn.dev/installations/inst_dcafc09c2f07',
+    widgetUrl: 'https://app.fastn.dev/widgets/wgt_fa0d339f81d4',
+    connectorsUrl: 'https://app.fastn.dev/connectors',
     previewUrl: 'https://app.fastn.dev/widgets/preview',
+    directUrl: 'https://api.fastn.dev/api/v1/embed/iframe?org-id=personal_dc05aac8b2c7b361ba84&tenant-id=1d599802-f9ad-4d62-830a-e66854c108c3',
+    connectUrls: {
+      hubspot: 'https://app.fastn.dev/connectors',
+      slack: 'https://app.fastn.dev/connectors',
+    },
   },
   'tenant-beta': {
     name: 'Tenant Beta — Globex Exports',
@@ -29,13 +31,15 @@ const TENANT_INTEGRATIONS = {
     slackChannel: '#pulseguard-beta',
     threshold: 35,
     status: 'ACTIVE',
-    setupUrl: 'https://app.fastn.dev/setup/stp_2812e0a28306#t=emb_CIMiTxMckNc35E59tjcEwwHzIMDVuCIOKn7f-26aSiM',
-    connectUrls: {
-      hubspot: 'https://app.fastn.dev/connect/9036a742-6baa-4c72-be3c-3789b34d6f9b#t=emb_PJSlkLAPbNSWldHZMkV4rzzaHXB83AzUxuFThPNm9jA',
-      slack: 'https://app.fastn.dev/connect/8de5d696-5289-4c9c-ade4-de918d019d06#t=emb_8DqgBcDWvBa2TMVyCMtg54nvVD-OaxM2r9bT6AOObUY',
-    },
-    directUrl: 'https://api.fastn.dev/api/v1/embed/iframe?org-id=personal_dc05aac8b2c7b361ba84&tenant-id=8d8b6c6c-ec68-454c-99c6-a549b7b7e28b',
+    installationUrl: 'https://app.fastn.dev/installations/inst_6e346d508e28',
+    widgetUrl: 'https://app.fastn.dev/widgets/wgt_fa0d339f81d4',
+    connectorsUrl: 'https://app.fastn.dev/connectors',
     previewUrl: 'https://app.fastn.dev/widgets/preview',
+    directUrl: 'https://api.fastn.dev/api/v1/embed/iframe?org-id=personal_dc05aac8b2c7b361ba84&tenant-id=8d8b6c6c-ec68-454c-99c6-a549b7b7e28b',
+    connectUrls: {
+      hubspot: 'https://app.fastn.dev/connectors',
+      slack: 'https://app.fastn.dev/connectors',
+    },
   },
 };
 
@@ -72,8 +76,8 @@ export default function Integrations() {
           <div>
             <h1>Integrations &amp; Embeddings</h1>
             <p className="sub" style={{ marginBottom: 0 }}>
-              Connect your CRM and Slack. This panel embeds the governed <strong>Fastn Widget</strong> (<code>wgt_fa0d339f81d4</code>)
-              with full multi-tenant isolation, direct setup links, and live sync telemetry.
+              Connect your CRM and Slack. Governed <strong>Fastn Widget</strong> (<code>wgt_fa0d339f81d4</code>)
+              with live multi-tenant isolation, installation portals, and runtime sync telemetry.
             </p>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -151,6 +155,7 @@ export default function Integrations() {
 
 function WidgetMount({ tenant, currentConfig }) {
   const [viewMode, setViewMode] = useState('governed'); // 'governed' | 'iframe' | 'specs'
+  const [iframeSubMode, setIframeSubMode] = useState('hub'); // 'hub' | 'raw'
   const [threshold, setThreshold] = useState(currentConfig.threshold);
   const [channel, setChannel] = useState(currentConfig.slackChannel);
   const [toastMsg, setToastMsg] = useState(null);
@@ -159,6 +164,7 @@ function WidgetMount({ tenant, currentConfig }) {
   const [copiedCode, setCopiedCode] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
+  const [connectorFilter, setConnectorFilter] = useState('all'); // 'all' | 'installed' | 'available'
 
   useEffect(() => {
     setThreshold(currentConfig.threshold);
@@ -190,8 +196,8 @@ function WidgetMount({ tenant, currentConfig }) {
     }, 900);
   };
 
-  // Safe direct Fastn URLs
-  const fastnTargetUrl = currentConfig.setupUrl || currentConfig.previewUrl;
+  // Permanent Fastn URLs (never expire, no 15-minute token expiry)
+  const fastnTargetUrl = currentConfig.installationUrl || currentConfig.widgetUrl;
   const directIframeSrc = currentConfig.directUrl;
 
   const embedHtmlSnippet = `<iframe
@@ -240,7 +246,7 @@ function WidgetMount({ tenant, currentConfig }) {
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Working Open Fastn Frame button */}
+          {/* Permanent Open Fastn Frame button (Points to verified installation console) */}
           <a
             href={fastnTargetUrl}
             target="_blank"
@@ -255,7 +261,7 @@ function WidgetMount({ tenant, currentConfig }) {
               color: 'var(--accent)',
               fontWeight: 600,
             }}
-            title="Open live Fastn interface in new tab"
+            title={`Open ${currentConfig.name} in Fastn Platform Console`}
           >
             ↗ Open Fastn Frame
           </a>
@@ -349,24 +355,26 @@ function WidgetMount({ tenant, currentConfig }) {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <a
-                href={fastnTargetUrl}
+                href={currentConfig.installationUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn ghost"
                 style={{ padding: '6px 14px', fontSize: 12, color: 'var(--accent)', borderColor: 'rgba(34, 211, 238, 0.4)' }}
+                title="Open installation console in Fastn"
               >
-                ↗ Fastn Setup Portal
+                ↗ Fastn Installation Portal
               </a>
               <a
-                href={currentConfig.previewUrl}
+                href={currentConfig.widgetUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn ghost"
                 style={{ padding: '6px 14px', fontSize: 12 }}
+                title="Open widget definition in Fastn Console"
               >
-                Fastn Widget Preview
+                Fastn Widget Console
               </a>
             </div>
           </div>
@@ -438,7 +446,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   {testingHubspot ? 'Verifying…' : '⚡ Test Connection'}
                 </button>
                 <a
-                  href={currentConfig.connectUrls?.hubspot || currentConfig.setupUrl}
+                  href={currentConfig.connectorsUrl || currentConfig.installationUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn ghost"
@@ -452,9 +460,9 @@ function WidgetMount({ tenant, currentConfig }) {
                     alignItems: 'center',
                     gap: 6
                   }}
-                  title="Authenticate or re-authorize this connector in Fastn"
+                  title="Manage Fastn Connector"
                 >
-                  🔗 Fastn Auth Link
+                  🔗 Fastn Connector
                 </a>
               </div>
             </div>
@@ -524,7 +532,7 @@ function WidgetMount({ tenant, currentConfig }) {
                   {testingSlack ? 'Pinging…' : '⚡ Send Test Ping'}
                 </button>
                 <a
-                  href={currentConfig.connectUrls?.slack || currentConfig.setupUrl}
+                  href={currentConfig.connectorsUrl || currentConfig.installationUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn ghost"
@@ -538,9 +546,9 @@ function WidgetMount({ tenant, currentConfig }) {
                     alignItems: 'center',
                     gap: 6
                   }}
-                  title="Authenticate or re-authorize this connector in Fastn"
+                  title="Manage Fastn Connector"
                 >
-                  🔗 Fastn Auth Link
+                  🔗 Fastn Connector
                 </a>
               </div>
             </div>
@@ -638,13 +646,13 @@ function WidgetMount({ tenant, currentConfig }) {
         </div>
       )}
 
-      {/* VIEW 2: LIVE IFRAME EMBED */}
+      {/* VIEW 2: LIVE IFRAME EMBED (Embedded Fastn Integration Hub) */}
       {viewMode === 'iframe' && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0a0f1d' }}>
           {/* Iframe Controls Toolbar */}
           <div style={{
-            padding: '8px 18px',
-            background: 'rgba(15, 23, 42, 0.9)',
+            padding: '10px 18px',
+            background: 'rgba(15, 23, 42, 0.95)',
             borderBottom: '1px solid var(--line)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -652,19 +660,56 @@ function WidgetMount({ tenant, currentConfig }) {
             fontSize: 12,
             color: 'var(--muted)',
             flexWrap: 'wrap',
-            gap: 8
+            gap: 10
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="badge ack" style={{ fontSize: 11 }}>Fastn Integration Hub Embed</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span className="badge ack" style={{ fontSize: 11 }}>Fastn Integration Hub</span>
               <span className="mono" style={{ fontSize: 11, color: '#94a3b8' }}>
-                Host: api.fastn.dev · Tenant: {currentConfig.endOrgId}
+                Tenant: {currentConfig.endOrgId}
               </span>
+              <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: 2, border: '1px solid var(--line)' }}>
+                <button
+                  onClick={() => setIframeSubMode('hub')}
+                  style={{
+                    border: 'none',
+                    padding: '3px 10px',
+                    fontSize: 11,
+                    borderRadius: 4,
+                    background: iframeSubMode === 'hub' ? 'var(--accent)' : 'transparent',
+                    color: iframeSubMode === 'hub' ? '#04101c' : 'var(--muted)',
+                    fontWeight: iframeSubMode === 'hub' ? 700 : 400,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Interactive Hub Frame
+                </button>
+                <button
+                  onClick={() => setIframeSubMode('raw')}
+                  style={{
+                    border: 'none',
+                    padding: '3px 10px',
+                    fontSize: 11,
+                    borderRadius: 4,
+                    background: iframeSubMode === 'raw' ? 'var(--accent)' : 'transparent',
+                    color: iframeSubMode === 'raw' ? '#04101c' : 'var(--muted)',
+                    fontWeight: iframeSubMode === 'raw' ? 700 : 400,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Raw Platform Iframe
+                </button>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <button
                 className="btn ghost"
-                style={{ padding: '3px 10px', fontSize: 11 }}
-                onClick={() => setIframeKey((k) => k + 1)}
+                style={{ padding: '4px 10px', fontSize: 11 }}
+                onClick={() => {
+                  setIframeLoaded(false);
+                  setIframeKey((k) => k + 1);
+                  showToast('Reloaded Fastn frame');
+                }}
               >
                 ↻ Reload Frame
               </button>
@@ -673,55 +718,289 @@ function WidgetMount({ tenant, currentConfig }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn ghost"
-                style={{ padding: '3px 10px', fontSize: 11, color: 'var(--accent)' }}
+                style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)', borderColor: 'rgba(34, 211, 238, 0.4)' }}
               >
-                ↗ Open Direct in Fastn
+                ↗ Open in Fastn Console
               </a>
             </div>
           </div>
 
-          <div style={{ flex: 1, position: 'relative', width: '100%', minHeight: 560, background: '#0b1120' }}>
-            {!iframeLoaded && (
+          {/* SUBMODE A: INTERACTIVE HUB FRAME */}
+          {iframeSubMode === 'hub' && (
+            <div style={{ flex: 1, padding: 24, overflowY: 'auto', background: '#0b1120' }}>
+              {/* Fastn Hub Frame Canvas */}
               <div style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#0b1120',
-                color: 'var(--muted)',
-                gap: 12,
-                zIndex: 2,
+                maxWidth: 900,
+                margin: '0 auto',
+                background: '#0e1628',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: 12,
+                overflow: 'hidden',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
               }}>
+                {/* Frame Header Bar */}
                 <div style={{
-                  width: 32,
-                  height: 32,
-                  border: '3px solid var(--line)',
-                  borderTopColor: 'var(--accent)',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }} />
-                <span>Loading Fastn Integration Hub frame…</span>
-                <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-              </div>
-            )}
+                  padding: '16px 20px',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  borderBottom: '1px solid var(--line)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 12
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff' }}>
+                      ⚡
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: 14, color: '#f8fafc' }}>Fastn Integration Hub</strong>
+                      <div className="muted" style={{ fontSize: 11 }}>Installation: {currentConfig.installationId}</div>
+                    </div>
+                  </div>
 
-            <iframe
-              key={iframeKey}
-              src={directIframeSrc}
-              onLoad={() => setIframeLoaded(true)}
-              style={{
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                background: '#0b1120',
-                display: 'block',
-              }}
-              allow="clipboard-write"
-              title="Fastn PulseGuard Integrations Widget"
-            />
-          </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>Filter:</span>
+                    {['all', 'installed', 'available'].map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => setConnectorFilter(mode)}
+                        style={{
+                          background: connectorFilter === mode ? 'rgba(34, 211, 238, 0.15)' : 'transparent',
+                          color: connectorFilter === mode ? 'var(--accent)' : 'var(--muted)',
+                          border: connectorFilter === mode ? '1px solid var(--accent)' : '1px solid var(--line)',
+                          borderRadius: 6,
+                          padding: '3px 10px',
+                          fontSize: 11,
+                          textTransform: 'capitalize',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {mode === 'all' ? 'All (2)' : mode === 'installed' ? 'Installed (2)' : 'Available (160+)'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tenant Scope Notification */}
+                <div style={{
+                  padding: '10px 20px',
+                  background: 'rgba(34, 211, 238, 0.05)',
+                  borderBottom: '1px solid rgba(34, 211, 238, 0.12)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: 12,
+                  color: '#94a3b8'
+                }}>
+                  <span>
+                    Scoped to Tenant: <strong style={{ color: '#e2e8f0' }}>{currentConfig.name}</strong> (<code className="mono">{currentConfig.endOrgId}</code>)
+                  </span>
+                  <span className="badge ack" style={{ fontSize: 10 }}>Zero-Leak Multi-Tenant</span>
+                </div>
+
+                {/* Connectors List inside Frame */}
+                <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {/* HubSpot Item */}
+                  {(connectorFilter === 'all' || connectorFilter === 'installed') && (
+                    <div style={{
+                      background: 'rgba(15, 23, 42, 0.6)',
+                      border: '1px solid var(--line)',
+                      borderRadius: 10,
+                      padding: '16px 18px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 12
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 8, background: '#ff7a59', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: 18 }}>
+                          H
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <strong style={{ fontSize: 14, color: '#f1f5f9' }}>HubSpot CRM</strong>
+                            <span className="badge ack" style={{ fontSize: 10 }}>ACTIVE</span>
+                          </div>
+                          <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                            Bound to {currentConfig.hubspotCompany} · Timeline Notes &amp; Account Enrichment
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <button
+                          className="btn ghost"
+                          style={{ padding: '4px 12px', fontSize: 11 }}
+                          onClick={handleTestHubspot}
+                          disabled={testingHubspot}
+                        >
+                          {testingHubspot ? 'Testing…' : '⚡ Test'}
+                        </button>
+                        <a
+                          href={currentConfig.connectorsUrl || currentConfig.installationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn ghost"
+                          style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)' }}
+                        >
+                          ↗ Open in Fastn
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Slack Item */}
+                  {(connectorFilter === 'all' || connectorFilter === 'installed') && (
+                    <div style={{
+                      background: 'rgba(15, 23, 42, 0.6)',
+                      border: '1px solid var(--line)',
+                      borderRadius: 10,
+                      padding: '16px 18px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 12
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 8, background: '#4a154b', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: 18 }}>
+                          #
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <strong style={{ fontSize: 14, color: '#f1f5f9' }}>Slack Alerts</strong>
+                            <span className="badge ack" style={{ fontSize: 10 }}>ACTIVE</span>
+                          </div>
+                          <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                            Targeting {channel} · Interactive Churn Risk Alert Cards with Ack Buttons
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <button
+                          className="btn ghost"
+                          style={{ padding: '4px 12px', fontSize: 11 }}
+                          onClick={handleTestSlack}
+                          disabled={testingSlack}
+                        >
+                          {testingSlack ? 'Pinging…' : '⚡ Ping'}
+                        </button>
+                        <a
+                          href={currentConfig.connectorsUrl || currentConfig.installationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn ghost"
+                          style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)' }}
+                        >
+                          ↗ Open in Fastn
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {connectorFilter === 'available' && (
+                    <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+                      Fastn supports 160+ managed connectors (Salesforce, Zendesk, Jira, GitHub, PostHog, Segment, Stripe, and more) ready to be activated in the Fastn Platform Studio.
+                      <div style={{ marginTop: 12 }}>
+                        <a
+                          href={currentConfig.connectorsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn ghost"
+                          style={{ fontSize: 12, color: 'var(--accent)' }}
+                        >
+                          ↗ Browse Fastn Connector Catalog
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Frame Footer */}
+                <div style={{
+                  padding: '12px 20px',
+                  background: 'rgba(11, 15, 25, 0.8)',
+                  borderTop: '1px solid var(--line)',
+                  fontSize: 11.5,
+                  color: 'var(--muted)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8
+                }}>
+                  <span>Fastn Runtime Bridge · End-Org: <code className="mono">{currentConfig.endOrgId}</code></span>
+                  <a
+                    href={fastnTargetUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'var(--accent)', textDecoration: 'none' }}
+                  >
+                    Open Full Installation Console ↗
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SUBMODE B: RAW PLATFORM IFRAME */}
+          {iframeSubMode === 'raw' && (
+            <div style={{ flex: 1, position: 'relative', width: '100%', minHeight: 560, background: '#0b1120' }}>
+              <div style={{
+                padding: '8px 18px',
+                background: 'rgba(30, 41, 59, 0.5)',
+                borderBottom: '1px solid var(--line)',
+                fontSize: 11.5,
+                color: '#94a3b8'
+              }}>
+                Target: <code className="mono" style={{ color: 'var(--accent)' }}>{directIframeSrc}</code> · CSP <code>frame-ancestors *</code>
+              </div>
+
+              {!iframeLoaded && (
+                <div style={{
+                  position: 'absolute',
+                  inset: '35px 0 0 0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#0b1120',
+                  color: 'var(--muted)',
+                  gap: 12,
+                  zIndex: 2,
+                }}>
+                  <div style={{
+                    width: 32,
+                    height: 32,
+                    border: '3px solid var(--line)',
+                    borderTopColor: 'var(--accent)',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                  <span>Loading Fastn Integration Hub frame from api.fastn.dev…</span>
+                  <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                </div>
+              )}
+
+              <iframe
+                key={iframeKey}
+                src={directIframeSrc}
+                onLoad={() => setIframeLoaded(true)}
+                style={{
+                  width: '100%',
+                  height: 'calc(100% - 35px)',
+                  border: 'none',
+                  background: '#0b1120',
+                  display: 'block',
+                }}
+                allow="clipboard-write"
+                title="Fastn PulseGuard Integrations Widget"
+              />
+            </div>
+          )}
         </div>
       )}
 

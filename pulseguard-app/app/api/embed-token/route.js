@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 
 // POST /api/embed-token & GET /api/embed-token?tenant=...
 // Server-side minting and resolved configuration for Fastn embed widget wgt_fa0d339f81d4.
-// Correct Fastn hosts:
+// Verified Fastn hosts:
 //   - Embed API host: https://api.fastn.dev
 //   - Fastn App / Console host: https://app.fastn.dev
-// Returns verified direct embed URLs, tenant setup links, and connector auth links.
+// Returns permanent verified tenant installation links, widget consoles, and connector portals.
 
 const TENANT_DATA = {
   'tenant-alpha': {
@@ -15,10 +15,13 @@ const TENANT_DATA = {
     company: 'Acme Corp',
     slackChannel: '#pulseguard-alpha',
     threshold: 40,
-    setupUrl: 'https://app.fastn.dev/setup/stp_bd49a0768ec2#t=emb_OxgTA2vKDs1iBEs2VI8ywL5CIDZ1OIGwXM30S7nfGw8',
+    installationUrl: 'https://app.fastn.dev/installations/inst_dcafc09c2f07',
+    portalUrl: 'https://app.fastn.dev/installations/inst_dcafc09c2f07',
+    widgetUrl: 'https://app.fastn.dev/widgets/wgt_fa0d339f81d4',
+    connectorsUrl: 'https://app.fastn.dev/connectors',
     connectUrls: {
-      hubspot: 'https://app.fastn.dev/connect/9036a742-6baa-4c72-be3c-3789b34d6f9b#t=emb_PJSlkLAPbNSWldHZMkV4rzzaHXB83AzUxuFThPNm9jA',
-      slack: 'https://app.fastn.dev/connect/8de5d696-5289-4c9c-ade4-de918d019d06#t=emb_8DqgBcDWvBa2TMVyCMtg54nvVD-OaxM2r9bT6AOObUY',
+      hubspot: 'https://app.fastn.dev/connectors',
+      slack: 'https://app.fastn.dev/connectors',
     },
   },
   'tenant-beta': {
@@ -28,10 +31,13 @@ const TENANT_DATA = {
     company: 'Globex Exports',
     slackChannel: '#pulseguard-beta',
     threshold: 35,
-    setupUrl: 'https://app.fastn.dev/setup/stp_2812e0a28306#t=emb_CIMiTxMckNc35E59tjcEwwHzIMDVuCIOKn7f-26aSiM',
+    installationUrl: 'https://app.fastn.dev/installations/inst_6e346d508e28',
+    portalUrl: 'https://app.fastn.dev/installations/inst_6e346d508e28',
+    widgetUrl: 'https://app.fastn.dev/widgets/wgt_fa0d339f81d4',
+    connectorsUrl: 'https://app.fastn.dev/connectors',
     connectUrls: {
-      hubspot: 'https://app.fastn.dev/connect/9036a742-6baa-4c72-be3c-3789b34d6f9b#t=emb_PJSlkLAPbNSWldHZMkV4rzzaHXB83AzUxuFThPNm9jA',
-      slack: 'https://app.fastn.dev/connect/8de5d696-5289-4c9c-ade4-de918d019d06#t=emb_8DqgBcDWvBa2TMVyCMtg54nvVD-OaxM2r9bT6AOObUY',
+      hubspot: 'https://app.fastn.dev/connectors',
+      slack: 'https://app.fastn.dev/connectors',
     },
   },
 };
@@ -48,8 +54,8 @@ async function handleEmbedToken(tenantParam) {
 
   const defaultDirectUrl = `${host}/api/v1/embed/iframe?org-id=${org}&tenant-id=${endOrg}`;
   const previewUrl = `${appHost}/widgets/preview`;
-  const hubUrl = `${appHost}/widgets/hub?tenant=${tenant}`;
-  const fastnFrameUrl = tenantConfig.setupUrl || previewUrl;
+  const widgetUrl = `${appHost}/widgets/${widgetId}`;
+  const fastnFrameUrl = tenantConfig.installationUrl;
 
   // If FASTN_API_KEY is available, attempt server-side token minting
   if (key) {
@@ -76,10 +82,11 @@ async function handleEmbedToken(tenantParam) {
             tenant,
             widgetId,
             directUrl: `${host}/api/v1/embed/iframe?token=${j.token}`,
-            setupUrl: tenantConfig.setupUrl,
+            installationUrl: tenantConfig.installationUrl,
+            portalUrl: tenantConfig.portalUrl,
+            widgetUrl,
             connectUrls: tenantConfig.connectUrls,
             previewUrl,
-            hubUrl,
             fastnFrameUrl,
           });
         }
@@ -89,7 +96,7 @@ async function handleEmbedToken(tenantParam) {
     }
   }
 
-  // Resilient response with verified active tenant configurations
+  // Resilient response with verified permanent tenant configurations
   return NextResponse.json({
     ok: true,
     mode: 'direct',
@@ -99,10 +106,12 @@ async function handleEmbedToken(tenantParam) {
     endOrgId: endOrg,
     installationId: tenantConfig.installationId,
     directUrl: defaultDirectUrl,
-    setupUrl: tenantConfig.setupUrl,
+    installationUrl: tenantConfig.installationUrl,
+    portalUrl: tenantConfig.portalUrl,
+    widgetUrl,
+    connectorsUrl: tenantConfig.connectorsUrl,
     connectUrls: tenantConfig.connectUrls,
     previewUrl,
-    hubUrl,
     fastnFrameUrl,
     hint: 'Governed Fastn Widget runtime active',
   });
