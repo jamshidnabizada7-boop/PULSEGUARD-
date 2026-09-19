@@ -2,8 +2,8 @@
  * PulseGuard Risk Engine — Fastn workflow (instant tier)
  * Trigger: telemetry webhook / direct execute. Tenant-aware via x-end-org-id.
  * Flow: dedupe -> evaluate risk -> enrich account (Unified CRM, fallback direct) ->
- *       CRM timeline note -> interactive Slack card -> persist metric row.
- * Note: tenant connections are pinned via CONNECTION_MAP because the executeWorkflow
+ *       CRM timeline note -> interactive Slack card -> persist metric row. [live]
+ * Note: tenant connections are pinned via CONNECTION_MAP because the executeWorkflow [v2 managed]
  * MCP tool cannot forward tenant headers (platform gap, filed as feedback).
  */
 const CONNECTION_MAP = {
@@ -18,6 +18,8 @@ const CONNECTION_MAP = {
     slack: "ucl:personal_dc05aac8b2c7b361ba84:8d8b6c6c-ec68-454c-99c6-a549b7b7e28b:8de5d696-5289-4c9c-ade4-de918d019d06:default",
   },
 };
+CONNECTION_MAP["1d599802-f9ad-4d62-830a-e66854c108c3"] = CONNECTION_MAP["tenant-alpha"];
+CONNECTION_MAP["8d8b6c6c-ec68-454c-99c6-a549b7b7e28b"] = CONNECTION_MAP["tenant-beta"];
 
 export default async function (ctx) {
   const input = ctx.input || {};
@@ -124,14 +126,21 @@ export default async function (ctx) {
     noteOk = true; steps.push("unified-createNote-ok");
   } catch (e) {
     steps.push("unified-createNote-fail:" + (e && e.message));
-    try {
-      const now = new Date().toISOString();
-      await fastn.connector.hubspot.createNoteWithAssociation({
-        properties: { hs_note_body: noteTitle + "\n" + noteBody, hs_timestamp: now },
-        associations: [{ to: { id: String(account.id) }, types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: 279 }] }],
-      });
-      noteOk = true; steps.push("direct-createNote-ok");
-    } catch (e2) { steps.push("direct-createNote-fail:" + (e2 && e2.message)); }
+    const now = new Date().toISOString();
+    const noteShapes = [
+      { label: "props+assoc279", body: { properties: { hs_note_body: noteTitle + "\n" + noteBody, hs_timestamp: now }, associations: [{ to: { id: String(account.id) }, types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: 279 }] }] } },
+      { label: "flat-body-company", body: { noteBody: noteTitle + "\n" + noteBody, companyId: String(account.id) } },
+      { label: "props-only", body: { properties: { hs_note_body: noteTitle + "\n" + noteBody, hs_timestamp: now } } },
+    ];
+    for (const shape of noteShapes) {
+      try {
+        const nr = await fastn.connector.hubspot.createNoteWithAssociation(shape.body);
+        noteOk = true; steps.push("direct-createNote-ok[" + shape.label + "]");
+        break;
+      } catch (e2) {
+        steps.push("direct-createNote-fail[" + shape.label + "]:" + JSON.stringify(e2 && (e2.body || e2.output || e2.message || String(e2))).slice(0, 400));
+      }
+    }
   }
 
   // 3) interactive Slack alert to the tenant's channel
@@ -154,10 +163,19 @@ export default async function (ctx) {
     ],
   };
   let notified = false;
+  let channelResolved = channel;
   try {
-    await fastn.connector.slack.createChatPostMessage(alert);
+    const cl = await fastn.connector.slack.listConversationsList({ limit: 100, types: "public_channel" });
+    const chans = (cl && cl.output && (cl.output.channels || cl.output.data || [])) || [];
+    const want = channel.replace("#", "");
+    const hit = chans.find((c) => c.name === want);
+    if (hit && hit.id) { channelResolved = hit.id; steps.push("chan-resolved:" + hit.id); }
+    else { steps.push("chan-miss:bot sees " + chans.map((c) => c.name).join(",").slice(0, 150)); }
+  } catch (e0) { steps.push("chan-list-fail:" + JSON.stringify(e0 && (e0.message || e0)).slice(0, 300)); }
+  try {
+    await fastn.connector.slack.createChatPostMessage(Object.assign({}, alert, { channel: channelResolved }));
     notified = true; steps.push("slack-ok");
-  } catch (e) { steps.push("slack-fail:" + (e && e.message)); }
+  } catch (e) { steps.push("slack-fail:" + JSON.stringify(e && (e.message || e)).slice(0, 400)); }
 
   // 4) persist the risk state
   try {

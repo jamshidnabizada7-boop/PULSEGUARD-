@@ -1,39 +1,49 @@
-# PulseGuard — Build State v2 (overnight session)
-*Read this first when resuming. Companion: START-HERE.md on Desktop.*
+# PulseGuard — Current Working State (handoff for any AI agent)
+*Updated 2026-09-19 ~11:15 AM PKT. Read this fully before touching anything.*
+
+## Locations
+- **Project repo (the deliverable)**: `C:\Users\Farah Naz\Desktop\PulseGuard` — git repo, push to https://github.com/jamshidnabizada7-boop/PULSEGUARD-.git (credentials already stored in Git Credential Manager; user.name = jamshidnabizada7-boop)
+- **Agent tooling (this workspace)**: `C:\Users\Farah Naz\.zcode\workspace\default`
+  - `.pg-call.mjs` — MCP caller: `node .pg-call.mjs '{"label":"x","tool":"<toolName>","args":{...}}'` (env `PG_TAIL=45000` for slow calls). Opens a gate-cleared MCP session (it calls `skill {"slug":"gateway"}` first — REQUIRED).
+  - `.pg-tools-full.json` — all 117 gateway tools with schemas
+  - `.pg-state.md` — earlier state ledger (this file supersedes it)
+  - `.agents/skills/` — installed fastn skills (integration_builder + refs, workflow_verifier, unified_api, gateway)
+- **Fastn dashboard**: https://app.fastn.dev (user: jamshidnabizada7@gmail.com)
+- **Platform REST host**: https://live.fastn.ai · MCP gateway: https://mcp.fastn.dev (via mcp-remote; OAuth token cached in `C:\Users\Farah Naz\.mcp-auth\`)
+
+## Verified WORKING right now
+- **Slack card DELIVERED** to `#pulseguard-alpha` (Fastn app posted the full churn-risk card with Acknowledge button — screenshot evidence 2026-09-19 11:09 AM PKT). Required `/invite @Fastn` in the channels — DONE for alpha AND beta.
+- HubSpot `searchCompanies` via tenant connection (found Acme Corp id **347506893507**)
+- `fastn.db` (`pulseguard_metrics` table, rows), `fastn.state` dedupe (30-min window keyed on tenant+customer+dropPct)
+- Tenant routing: Test panel sends `{"x-end-org-id":"1d599802-f9ad-4d62-830a-e66854c108c3"}` → runs against Tenant-Alpha connections. **Test panel runs ALWAYS use the latest dev code** (deploy gap only affects executeWorkflow/trigger paths).
 
 ## IDs (authoritative)
-- Org: `personal_dc05aac8b2c7b361ba84` (name "Hackathon Batch 13 Aryan" — rename blocked, name derived from verified domain; leave as is)
-- Tenants: ALPHA `1d599802-f9ad-4d62-830a-e66854c108c3` (Acme, #pulseguard-alpha) · BETA `8d8b6c6c-ec68-454c-99c6-a549b7b7e28b` (Globex, #pulseguard-beta)
-- Workflows: risk-engine-v2 **`wf_fe925b124168`** (LIVE, pins+unified fix) · ack-loop `wf_4afb70d49708` · platform-api `wf_bf65ee4595f7` (live) · bootstrap `wf_1cfc55bdc0cd` · risk-engine v1 `wf_19ea1eca8222` (superseded)
-- Widget: **`wgt_fa0d339f81d4`** "PulseGuard Integrations" (APP type, hubspot+slack, both workflows, ACTIVE)
-- Connections (all ACTIVE): HubSpot+Slack × both tenants (ucl: composite ids in workflow CONNECTION_MAP)
+- Org: `personal_dc05aac8b2c7b361ba84` (name "Hackathon Batch 13 Aryan" — rename impossible on free plan, name derives from verified domain; leave as is)
+- Tenant ALPHA: `1d599802-f9ad-4d62-830a-e66854c108c3` (Acme Corp, #pulseguard-alpha)
+- Tenant BETA: `8d8b6c6c-ec68-454c-99c6-a549b7b7e28b` (Globex Exports, #pulseguard-beta)
+- Risk Engine (THE live one): `wf_fe925b124168` slug `pulseguard-risk-engine-v2` — dashboard "Latest v3"
+- Ack Loop: `wf_4afb70d49708` · Platform API util: `wf_bf65ee4595f7` (live) · Bootstrap: `wf_1cfc55bdc0cd` · Risk v1 (superseded): `wf_19ea1eca8222`
+- Widget: `wgt_fa0d339f81d4` "PulseGuard Integrations" (APP type, hubspot+slack, both workflows)
+- Installations: ALPHA `inst_001013f1daf0` · BETA `inst_5cc2e6ec7487` (status active, config: riskThreshold 40/35, slackChannel set)
+- HubSpot: Acme Corp `347506893507` · Globex Exports (find via searchCompanies query "globex")
+- Webhook config (unused): `cwc_e493523badca` on HTTP API connector `b77f2010-181e-4a97-8094-4d3c513322d9`
+- HubSpot authMethod `45e0c3c0-fb8b-48c8-938b-b257bb954123` · Slack authMethod `7195748d-a02f-49e4-9e76-7e48d76a3b3c` · Fastn Workspace connector `770f8e5d-d218-423f-9ed4-998b7165f092` authMethod `3769fc44-0dc3-4949-b3fc-00b5a0847ab3`
+- publishWorkflow action UUID: `70d789c8-3236-41fc-a775-60aa327da094`
 
-## Publish semantics (learned the hard way)
-- createWorkflow → v1 DRAFT, not executable (409 WORKFLOW_NOT_PUBLISHED)
-- editWorkflowCode → self-publishes (published:true) but takes **~60-150s propagation**; subsequent edits create dev versions that DO NOT go live automatically
-- Live deploy of a dev version needs `deployWorkflowVersion` = Fastn Workspace connector action (reachable only via workflow code or executeAction+UUID)
-- executeAction needs action UUIDs (get from a workflow manifest that references the action; publishWorkflow UUID = `70d789c8-3236-41fc-a775-60aa327da094`)
-- getWorkflow does NOT resolve slugs — use listWorkflows
-- executeWorkflow cannot pass headers (no x-end-org-id/x-installation-id!) → tenant connections unreachable from MCP-driven execution (bug report #2)
+## CRITICAL platform gotchas (learned by fire)
+1. **Publish/deploy semantics**: `createWorkflow` → v1 draft, NOT executable (409). `editWorkflowCode` publishes the FIRST edit (with 60–150s propagation lag) — after that, further edits bump `devVersion` but DO NOT go live. Test-panel runs use the latest dev code regardless. To deploy dev → live: either fresh-create a new slug + first-edit (proven), or `deployWorkflowVersion` via the Fastn Workspace connector (BROKEN — bug #7: every action URL template is `"{{auth.baseUrl}}"` but the OAuth flow never populates baseUrl → "Action URL needs credential baseUrl"). `executeAction` requires action UUIDs (not slugs) — get them from a workflow manifest that references the action. `listWorkflows` works; `getWorkflow` does NOT resolve slugs.
+2. **Rate limits**: ~15 createWorkflow/hour → 429 "Fastn Workspace is rate-limiting requests"; did not clear in 25 min of backoff. Use edits, not recreates.
+3. **executeWorkflow MCP tool cannot pass headers** (no x-end-org-id/x-installation-id) → tenant connections unreachable from agent-driven execution. Test panel CAN pass headers. Bug reported.
+4. **Gateway flat tools broken**: `whoami`, `search_tools`, `list_connectors` (bare) → `-32603 configDb: unavailable on the data plane`. `fastnPlatform__*` tools all work. `manage_connections` also broken.
+5. **Dedupe**: same tenant+customerId+usageDropPct within 30 min → `DEDUPLICATED` early-return. Bump the drop % to re-fire.
+6. All 8 platform bugs with evidence: `Desktop/PulseGuard/docs/bug-reports.md` (submit in feedback form for bonus points).
 
-## THE ONE BLOCKER LEFT
-Workflow executes with org end-org context → tenant connections (ucl:*:1d599802.../8d8b6c6c...) don't resolve → Slack/CRM writes fail. Solutions in order:
-1. **User clicks** the fastnPlatform OAuth URL (below) → org-level Fastn Workspace connection → platform-api workflow can deploy + create WEBHOOK TRIGGERS (`createWebhookTrigger` POST /api/v1/webhooks) → trigger URLs carry tenant context → full E2E
-2. Then create webhook triggers for both tenants bound to wf_fe925b124168 / wf_4afb70d49708, and point the host app at those URLs
-3. Alternatively Fastn support fixes API keys (bug #1) → host app calls execute endpoint with x-end-org-id directly
-- fastnPlatform connect URL (minted ~05:15, 15-min validity — REGENERATE via initiateOauthConnection connectorId=770f8e5d-d218-423f-9ed4-998b7165f092 authMethodId=3769fc44-0dc3-4949-b3fc-00b5a0847ab3)
+## REMAINING WORK (in order)
+1. **Verify HubSpot note shape**: last run showed 9 steps/6 OK/3 ERR — need the `steps[]` array from the user's Test panel output to see which note shape succeeded (`direct-createNote-ok[props+assoc279|flat-body-company|props-only]`). If ALL 3 shapes failed, the captured error bodies are in the steps — fix accordingly. (Slack + search now proven.)
+2. **Ack button URL**: currently `https://pulseguard.local/api/ack?...` (placeholder → DNS error, already clicked once). Fix options: (a) deploy dashboard, then editWorkflowCode replacing `ackBaseUrl` fallback with the Vercel URL; or (b) point it at the local dev server URL if demoing locally. The ack flow itself (`wf_4afb70d49708`) is live and works when invoked with {tenant, customerId, ackBy}.
+3. **Tenant-Beta E2E**: Test panel with headers `{"x-end-org-id":"8d8b6c6c-ec68-454c-99c6-a549b7b7e28b"}`, customerId = Globex's HubSpot id (search "Globex" first), usageDropPct 45 (beta threshold 35). Card must land in `#pulseguard-beta`.
+4. **User tasks**: Vercel deploy of `pulseguard-app/` (npm install already done locally; build passes), record video (script: `docs/demo-video-script.md`), HubSpot Gmail-sync cleanup + junk-company deletion, CNIC for NUST, fill both forms on-site.
+5. Optional: submit bug reports #1–#8.
 
-## Verified working
-- fastn.db (table pulseguard_metrics created, rows written) · fastn.state dedupe (DEDUPLICATED proven) · workflow execute end-to-end · error handling/steps diagnostics · tenant channel routing in code · widget create
-- Host app: see Desktop/PulseGuard/pulseguard-app (Next.js 14, plain CSS dark theme, /api/telemetry /api/ack /api/embed-token, tenant switcher)
-
-## Morning checklist (user)
-1. Regenerate + click fastnPlatform OAuth URL (above args) → org-level connection
-2. Then agent: create 2 webhook triggers (createWebhookTrigger via platform-api workflow), wire host app, run E2E both tenants, record video
-3. HubSpot: stop Gmail sync (still pending!), delete junk companies before demo recording
-4. Bring CNIC. Fill both forms on-site. Report org name as "Hackathon Batch 13 Aryan (hackathon-aryan)"
-
-## Tooling
-- `.pg-call.mjs` — MCP caller: `node .pg-call.mjs '{"label":"x","tool":"toolName","args":{...}}'` (gate-cleared session; env PG_TAIL for slow calls)
-- `.pg-tools-full.json` — all 117 tool schemas · `.pg-state.md` — this file
-- Workflow code of record: Desktop/PulseGuard/fastn/*.js (pushed to GitHub)
+## Workflow code of record
+`Desktop/PulseGuard/fastn/pulseguard-risk-engine.js` — NOTE: the LIVE code (wf_fe925b124168) has drifted slightly ahead of this file: live now has `orgId: "managed"`, UUID-keyed CONNECTION_MAP aliases, note-shape fallback chain, Slack channel resolution via listConversationsList. Sync the file from `getWorkflow` before further edits (use `.pg-call.mjs` + getWorkflow, extract `code`).
