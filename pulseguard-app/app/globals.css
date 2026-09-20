@@ -1959,15 +1959,21 @@ input[type='range']::-moz-range-thumb:hover {
   gap: 14px;
 }
 
-@media (min-width: 1400px) {
+@media (min-width: 1440px) {
   .connector-grid-vnext {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-@media (max-width: 860px) {
-  .connector-grid-vnext {
-    grid-template-columns: 1fr;
+/* When the Assistant dock is open, comfortably use 2 columns so nothing is squeezed */
+body.chat-open .connector-grid-vnext {
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+@media (max-width: 900px) {
+  .connector-grid-vnext,
+  body.chat-open .connector-grid-vnext {
+    grid-template-columns: 1fr !important;
   }
 }
 
