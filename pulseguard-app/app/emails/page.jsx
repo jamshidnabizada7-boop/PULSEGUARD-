@@ -33,7 +33,6 @@ export default function EmailsPage() {
   const [filter, setFilter] = useState('all'); // 'all' | 'delivered' | 'sent' | 'failed'
   const [search, setSearch] = useState('');
   const [selectedEmail, setSelectedEmail] = useState(null);
-  const [simulating, setSimulating] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -93,53 +92,6 @@ export default function EmailsPage() {
   const handleTenantChange = (next) => {
     setTenant(next);
     pushTenant(next);
-  };
-
-  const handleSimulateSend = async () => {
-    setSimulating(true);
-    const targetTenant = tenant === 'tenant-beta' ? 'tenant-beta' : 'tenant-alpha';
-    const t = getTenant(targetTenant);
-    try {
-      await fetch('/api/emails', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenant: targetTenant,
-          to: targetTenant === 'tenant-beta' ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io',
-          from: 'PulseGuard Alerts <alerts@pulseguard.io>',
-          subject: `[PulseGuard] Churn risk: ${t.company} — usage down ${t.dropPct}%`,
-          html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 580px; margin: 0 auto; padding: 24px; background: #ffffff; color: #1e293b; border-radius: 8px; border: 1px solid #e2e8f0;">
-  <div style="border-bottom: 2px solid #ef4444; padding-bottom: 12px; margin-bottom: 20px;">
-    <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #ef4444;">PulseGuard Retention Alert</span>
-    <h2 style="margin: 6px 0 0; font-size: 20px; color: #0f172a;">Churn risk detected for ${t.company}</h2>
-  </div>
-  <p style="font-size: 14px; line-height: 1.6; color: #334155;">
-    Telemetry analysis indicates that <strong>${t.company}</strong> weekly usage dropped by <strong style="color: #dc2626;">${t.dropPct}%</strong> this week. Health score: <strong>${t.dropHealth}/100</strong>.
-  </p>
-  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; margin: 18px 0;">
-    <div style="font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 4px;">SIGNAL TRACE</div>
-    <div style="font-size: 13.5px; color: #1e293b;">Automated anomaly alert for account manager review.</div>
-  </div>
-  <div style="margin: 24px 0 16px;">
-    <a href="https://pulseguard-app-nu.vercel.app/api/ack?tenant=${targetTenant}&customer=${encodeURIComponent(t.company)}&by=Email" style="display: inline-block; background: #4F46E5; color: #ffffff; font-size: 13.5px; font-weight: 600; padding: 10px 20px; border-radius: 6px; text-decoration: none;">
-      Acknowledge risk &rarr;
-    </a>
-  </div>
-  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0 14px;" />
-  <p style="font-size: 11.5px; color: #94a3b8; margin: 0;">
-    Dispatched by Fastn Workflow pulseguard-risk-engine-v3 via Google Gmail connector.
-  </p>
-</div>`,
-          status: 'sent',
-          sentAt: new Date().toISOString(),
-        }),
-      });
-      await fetchEmails();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSimulating(false);
-    }
   };
 
   return (

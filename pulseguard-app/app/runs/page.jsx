@@ -58,7 +58,6 @@ export default function Runs() {
   const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [triggering, setTriggering] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showPlatform, setShowPlatform] = useState(false);
 
@@ -126,51 +125,6 @@ export default function Runs() {
     }, 5000);
     return () => clearInterval(timer);
   }, [fetchRuns]);
-
-  async function triggerRun() {
-    setTriggering(true);
-    const targetTenant = tenant === 'all' || tenant === 'tenant-alpha' ? 'tenant-alpha' : 'tenant-beta';
-    const t = getTenant(targetTenant);
-    try {
-      const res = await fetch('/api/telemetry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerId: t.primaryCustomerId,
-          customerDomain: t.primaryDomain,
-          healthScore: t.dropHealth,
-          usageDropPct: t.dropPct,
-          metricSummary: `Diagnostic anomaly probe dispatched for ${t.company}.`,
-          tenant: targetTenant,
-        }),
-      });
-      const j = await res.json().catch(() => ({}));
-
-      if (typeof window !== 'undefined') {
-        try {
-          const existing = JSON.parse(localStorage.getItem('pulseguard_runs') || '[]');
-          const newRun = (j && j.run) ? j.run : {
-            id: `probe_${Date.now().toString(36)}`,
-            wf: 'pulseguard-risk-engine-v2',
-            tenant: targetTenant,
-            endOrgId: t.endOrgId,
-            customer: `${t.company} (${t.primaryCustomerId})`,
-            status: 'RISK_ESCALATED',
-            tier: 'instant',
-            steps: `usageDrop ${t.dropPct}% >= threshold · crm-timeline-noted · slack-card-queued · email-alert-sent`,
-            at: new Date().toISOString(),
-            via: (j && j.via) || 'simulated-dispatch-fallback',
-          };
-          localStorage.setItem('pulseguard_runs', JSON.stringify([newRun, ...existing].slice(0, 50)));
-        } catch {}
-      }
-
-      await fetchRuns();
-    } catch (e) {
-      console.error(e);
-    }
-    setTriggering(false);
-  }
 
   function clearHistory() {
     if (typeof window !== 'undefined') {

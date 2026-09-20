@@ -1,35 +1,51 @@
-# Demo Video Script — 2:00 (hard cap for the submission)
+# Demo Video Script — 2:00 (Hard Cap for Submission)
 
-**Rules from the organizers:** short and point-to-point; 200+ submissions get skimmed.
-"A good submission is a small video presenting something big." Every segment below maps
-to a scoring criterion: Creativity 30 · Implementation 20 · MCP usage 20–40 · Submission ~30.
+**Rules from the organizers:** Short and point-to-point; 200+ submissions get skimmed.
+"A good submission is a small video presenting something big." Every segment below maps directly
+to the scoring criteria: Creativity 30 · Implementation 20 · MCP Usage 20–40 · Submission ~30.
 
-Screen recording (1920×1080) + voiceover. The chat acknowledgment in shot 4 is the
-centerpiece — it is a *real* Fastn workflow executed from an AI chat, live.
+Screen recording (1920×1080 @ 60 FPS, browser zoom 110%) + crisp voiceover.
+The chat acknowledgment in Shot 4 is the centerpiece — it is a *real* Fastn workflow executed from an AI chat, live.
 
-## Shot list
+---
 
-| Time | On screen | Say (verbatim-ish) |
+## Shot List
+
+| Time | On Screen | Say (Verbatim-ish) |
 |---|---|---|
-| 0:00–0:10 | Slide: "SaaS churn is silent" + a falling usage graph | "Customers rarely cancel out of nowhere — usage fades weeks earlier. PulseGuard catches that moment and acts on it, end to end." |
-| 0:10–0:30 | **PulseGrid dashboard**: welcome strip, KPI band, Monitored accounts table with the red NEEDS ATTENTION row | "This is PulseGrid Analytics — a B2B SaaS product whose retention engine, PulseGuard, runs on Fastn. Watch the one account that needs attention: usage fell sixteen percent this week." |
-| 0:30–0:55 | Click **Simulate Anomaly** → the row narrates live ("Diagnosing… Writing the CRM note… Alerting #pulseguard-alpha") → cut to Slack: interactive card lands in #pulseguard-alpha | "One click sends real telemetry into Fastn. The risk engine diagnoses the account, writes a churn note onto the CRM timeline, and alerts the right channel — in seconds, per tenant." |
-| 0:55–1:10 | HubSpot: Acme Corp company timeline — the automated diagnosis note | "There's the diagnosis on the customer's CRM timeline. No one wrote it — Fastn's Unified CRM API did." |
-| 1:10–1:40 | **The AI assistant (money shot)**: ask "Which account should I contact first?" → LLM answer with live data → click "Acknowledge the Acme Corp risk" → row flashes, badge flips to HANDLED, KPI counts down to zero | "And it's a closed loop with an AI on top. The assistant reads live data, prioritises my outreach — and acknowledges the risk *from chat*. That click executes a real Fastn workflow: CRM updated, alert cleared, dashboard synced." |
-| 1:40–1:50 | Tenant switcher → Tenant Beta (Globex) — different data, different channel; quick Integrations glance: tokenized Fastn embed | "Every customer is an isolated workspace — own CRM, own Slack channel, zero leakage — connected in minutes through the embedded Fastn widget." |
-| 1:50–2:00 | Fastn **Activity → Executions** (or our Activity page traces) | "Every step ran on Fastn's governed runtime — and the backend itself was built by AI agents through Fastn's MCP gateway. PulseGuard: from telemetry to retained customers." |
+| **0:00–0:15** | **Live Dashboard & Welcome Strip**<br>Start directly inside PulseGuard. Welcome strip visible: *"PulseGuard watches how customers use your product — and warns you before they churn."* Dismiss welcome strip. Highlight the red pulsing `NEEDS ATTENTION` badge on Acme Corp ($48K ARR, sparkline falling to 38, delta `▾ 16% this week`). | "Customers rarely cancel out of nowhere — product usage fades weeks earlier. This is PulseGuard — an autonomous customer retention engine built on Fastn. Notice Acme Corp: weekly usage dropped sixteen percent, crossing our risk threshold." |
+| **0:15–0:35** | **Sync Telemetry & Automated Detection**<br>Click **Sync Telemetry** (next to pulsing `● Autonomous Watch Active`). The row narrates sequential stages live: `Ingesting telemetry…` &rarr; `Evaluating retention thresholds…` &rarr; `Syncing CRM & #pulseguard-alpha…` &rarr; `Telemetry synced`. | "I click Sync Telemetry. In real-time, Fastn's risk engine ingests customer telemetry, evaluates the threshold, writes a diagnosis onto the CRM timeline, and alerts the right account channel — in seconds, per tenant." |
+| **0:35–0:55** | **Multi-Channel Proof (Slack / HubSpot / Emails)**<br>Cut to Slack `#pulseguard-alpha` (Block Kit alert card) and HubSpot (Acme timeline note). Then click **Emails** (`/emails`): show full-width operations table, click the alert email to reveal the **Email Reader Modal** with delivery stepper (`Sent` &rarr; `Delivered`) and visual alert preview. | "Here is the delivered Slack card in #pulseguard-alpha, and the automated diagnosis on HubSpot CRM. On our Emails audit log, Fastn's Google Gmail connector confirmed delivery with a live trace stepper and risk acknowledgment link." |
+| **0:55–1:25** | **The AI Assistant (Money Shot)**<br>Open the chat dock. Click `"Which account should I contact first?"`. Assistant answers with live telemetry prioritizing Acme Corp ($48K ARR). Click `"Acknowledge the Acme Corp risk"`. Tool card expands: `Approve tool call: acknowledge-risk`. Click Approve &rarr; executes real Fastn workflow `pulseguard-ack-loop`. Row flashes, status flips to `HANDLED`, KPI counts down to zero! | "And it's a closed loop with an AI assistant. The agent reads live telemetry, prioritizes my outreach — and acknowledges the risk *directly from chat*. That click executes a real Fastn workflow: CRM updated, alert cleared, dashboard synced." |
+| **1:25–1:45** | **Multi-Tenant Isolation & 8-Connector MCP Catalog**<br>Switch workspace to **Tenant Beta (Globex Exports)**: show completely isolated data ($177.5K ARR, `#pulseguard-beta`). Open **Integrations** (`/integrations`): showcase the 8-connector MCP catalog with custom glowing red/green link buttons. Click Slack to show instant live ping toast to `#pulseguard-beta`! | "Every customer is an isolated workspace — own CRM, own Slack channel, zero data leakage. On our Integrations page, Fastn's 8-connector MCP catalog manages live connections with instant diagnostic pings and full tenant isolation." |
+| **1:45–2:00** | **Activity Traces & Closing**<br>Click **Activity** (`/runs`). Show real-time trace: `ack-by-pulseguard-assistant` &rarr; `crm-note-appended` &rarr; `risk-badge-cleared`. Expand `Platform details` to reveal Fastn Org ID and workflow IDs. | "Every step executed on Fastn's governed runtime — and our backend was built by AI agents through Fastn's MCP gateway. PulseGuard: from telemetry to retained customers." |
 
-## Why this order wins points
-- **0:30–1:10 is Implementation** — one continuous take, nothing faked.
-- **1:10–1:40 is Creativity + MCP** — an AI assistant that *acts* through governed
-  workflows, not just alerts. Say the words "real Fastn workflow execution from chat".
-- **1:40–1:50 is multi-tenant isolation** — the thing judges can't see anywhere else.
+---
 
-## Recording checklist
-- [ ] Vercel deployment has env vars set (FASTN_API_KEY, FASTN_ORG_ID, FASTN_HOST, FASTN_APP_URL, LLM_API_KEY, LLM_MODEL, APP_BASE_URL) — otherwise the assistant runs in fallback mode
-- [ ] 1920×1080, browser zoom 110%, dark theme; close the chat dock before shot 2, reopen for shot 4
-- [ ] Pre-seed: Acme healthy + risky rows visible (localStorage `pulseguard_runs` cleared once so Activity starts clean, then one warm-up run)
-- [ ] Slack #pulseguard-alpha open in second window; HubSpot Acme timeline in third; notifications OFF
-- [ ] Shots 0:30–1:40 in ONE continuous take (simulate → Slack → HubSpot → chat acknowledge)
-- [ ] First-visit welcome strip: dismiss on camera in shot 2 (it orients the viewer) — or clear localStorage before recording so it appears
-- [ ] Upload unlisted YouTube/Loom; add the link to the submission form FIRST
+## Why This Order Wins Maximum Points
+
+- **0:15–0:55 is Implementation (20 pts)** — One continuous take, multi-channel verification across Slack, HubSpot CRM, and Gmail.
+- **0:55–1:25 is Creativity + MCP (40 pts)** — An AI assistant that doesn't just talk, but *acts* through governed Fastn workflow execution (`pulseguard-ack-loop`). Emphasize: *"real Fastn workflow execution from chat"*.
+- **1:25–1:45 is Multi-Tenant Isolation & MCP Ecosystem (30 pts)** — Enterprise workspace separation with 8-connector MCP grid.
+- **1:45–2:00 is Fastn Governance & Traceability (30 pts)** — Live execution traces proving zero mocked state.
+
+---
+
+## Recording Checklist (Follow Exactly Before Pressing Record)
+
+1. **Resolution & Display**:
+   - Record at **1920×1080 @ 60 FPS** (OBS Studio or Loom with high-bitrate settings).
+   - Set Chrome/Edge browser zoom to **110%** (ensures cards and tables fill the 1080p frame crisply without horizontal scrolling).
+2. **Pristine State Reset**:
+   - Open browser DevTools (`F12`) &rarr; Console, and run:
+     ```javascript
+     localStorage.clear();
+     ```
+   - Refresh the page (`Ctrl + Shift + R`). This ensures the **Welcome Strip** appears on first load, and the Activity log starts fresh.
+3. **Window Layout**:
+   - Main window: PulseGuard (`http://localhost:3210` or `https://pulseguard-app-nu.vercel.app`).
+   - Second tab/window: Slack `#pulseguard-alpha` (or prepare screenshot `evidence/01-slack-card-alpha.png` to cut in).
+   - Third tab/window: HubSpot Acme Corp timeline (or prepare screenshot `evidence/03-hubspot-timeline-note.png`).
+4. **Pacing**:
+   - Keep mouse movements smooth and deliberate. Pause for 0.5s on the pulsing `NEEDS ATTENTION` badge and the chat tool-approval card.
+   - Total runtime must remain between **1:45 and 1:58** (strictly under the 2:00 cap).

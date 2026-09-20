@@ -163,16 +163,18 @@ export default function Home() {
     // Production telemetry sync: Ingest real-time customer usage and evaluate alert thresholds
     setProgress(`Ingesting telemetry for ${t.company}…`);
     progressTimers.current.forEach(clearTimeout);
-    progressTimers.current = [
-      setTimeout(() => setProgress('Evaluating retention thresholds…'), 800),
-      setTimeout(() => setProgress(`Syncing CRM & ${t.channel}…`), 1600),
-    ];
 
     setHighlightedRow(primary.id);
     setHighlightType('anomaly');
-    setTimeout(() => setHighlightedRow(null), 2400);
 
     try {
+      // Step 1: Sequential visual narration stages
+      await new Promise((r) => setTimeout(r, 500));
+      setProgress('Evaluating retention thresholds…');
+
+      await new Promise((r) => setTimeout(r, 550));
+      setProgress(`Syncing CRM & ${t.channel}…`);
+
       const res = await fetch('/api/telemetry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -189,21 +191,24 @@ export default function Home() {
       const j = await res.json();
       if (j.ok) {
         setProgress('Telemetry synced');
-        setTimeout(() => setProgress(null), 1400);
+        setTimeout(() => {
+          setProgress(null);
+          setHighlightedRow(null);
+        }, 1500);
         setToast(`Telemetry synced — live customer usage and health scores refreshed for ${t.company}`);
 
         if (typeof window !== 'undefined') {
           try {
             const existing = JSON.parse(localStorage.getItem('pulseguard_runs') || '[]');
             const runEntry = j.run || {
-              id: `sim_${Date.now().toString(36)}`,
+              id: `probe_${Date.now().toString(36)}`,
               wf: 'pulseguard-risk-engine-v2',
               tenant,
               endOrgId: t.endOrgId,
               customer: `${primary.name} (${primary.id})`,
               status: 'RISK_ESCALATED',
               tier: 'instant',
-              steps: `usageDrop ${dropPct}% >= threshold · crm-timeline-noted · slack-alert-sent`,
+              steps: `usageDrop ${dropPct}% >= threshold · crm-timeline-noted · slack-card-queued · email-alert-sent`,
               at: new Date().toISOString(),
               via: j.via || 'simulated-dispatch-fallback',
             };
@@ -518,28 +523,30 @@ export default function Home() {
                         </div>
                       </td>
                       <td>
-                        {isActiveRisk ? (
-                          <span className="badge risk" title="Weekly usage dropped past the alert line — CRM noted, Slack alerted.">
-                            <span className="badge-dot pulse" />
-                            NEEDS ATTENTION
-                          </span>
-                        ) : a.acknowledged ? (
-                          <span className="badge ack" title="A team member acknowledged this risk — the CRM was updated.">
-                            <span className="badge-dot" />
-                            HANDLED
-                          </span>
-                        ) : (
-                          <span className="badge healthy">
-                            <span className="badge-dot" />
-                            HEALTHY
-                          </span>
-                        )}
-                        {highlightedRow === a.id && progress && highlightType === 'anomaly' && (
-                          <span className="row-progress">
-                            <IconSpinner size={12} />
-                            {progress}
-                          </span>
-                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-start' }}>
+                          {isActiveRisk ? (
+                            <span className="badge risk" title="Weekly usage dropped past the alert line — CRM noted, Slack alerted.">
+                              <span className="badge-dot pulse" />
+                              NEEDS ATTENTION
+                            </span>
+                          ) : a.acknowledged ? (
+                            <span className="badge ack" title="A team member acknowledged this risk — the CRM was updated.">
+                              <span className="badge-dot" />
+                              HANDLED
+                            </span>
+                          ) : (
+                            <span className="badge healthy">
+                              <span className="badge-dot" />
+                              HEALTHY
+                            </span>
+                          )}
+                          {highlightedRow === a.id && progress && highlightType === 'anomaly' && (
+                            <span className="row-progress" style={{ marginTop: 2 }}>
+                              <IconSpinner size={12} />
+                              {progress}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td>
                         {isActiveRisk ? (

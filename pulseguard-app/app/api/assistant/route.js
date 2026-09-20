@@ -11,10 +11,11 @@ import { NextResponse } from 'next/server';
 //           never shows a dead chat.
 // Layer 3 — built-in responder: deterministic, context-grounded answers.
 
-const SCREEN_GUIDE = `The product has three pages (left sidebar): Dashboard, Integrations, Activity.
-Dashboard elements: KPI cards (Accounts at risk, Healthy accounts, Revenue protected = total contract value watched, Avg health score = 0-100 usage/engagement blend); a Monitored accounts table where each row has an avatar, owner, contract value, a 7-day health sparkline (falling red line = churn signal), a "vs this week" delta chip, a status badge (NEEDS ATTENTION / HANDLED / HEALTHY) and an Acknowledge risk button; a "How the loop protects your revenue" pipeline (Usage drops > Risk detected > CRM updated > Team alerted > Loop closed); a status footer.
+const SCREEN_GUIDE = `The product has four pages (left sidebar): Dashboard, Integrations, Emails, Activity.
+Dashboard elements: KPI cards (Accounts at risk, Healthy accounts, Revenue protected = total contract value watched, Avg health score = 0-100 usage/engagement blend); a Monitored accounts table where each row has an avatar, owner, contract value, a 7-day health sparkline (falling red line = churn signal), a "vs this week" delta chip, a status badge (NEEDS ATTENTION / HANDLED / HEALTHY) and an Acknowledge risk button; a "How the loop protects your revenue" pipeline (Usage drops > Risk detected > CRM updated > Team alerted > Loop closed); a status footer with Autonomous Watch.
+Integrations page: 8-connector MCP catalog (HubSpot CRM, Slack Alerts, Fastn MCP Gateway, Fastn State & DB, Google Gmail, Google Calendar, Stripe Billing, Resend Email) with custom rounded-square link buttons (green = connected, red = disconnected with chain-link neon glow), interactive test pings, and a multi-tenant isolation matrix.
+Emails page: Operations email audit log table with live delivery stepper (Sent -> Delivered) and focused Email Reader Modal displaying rendered HTML email alerts dispatched via Google Gmail connector.
 Activity page: run history rows (When, Tenant & account, Workflow = Risk engine or Acknowledgement loop, Outcome badge, Ran on = where it executed, Execution trace = ordered internal steps proving real execution), KPIs (Total runs, Alerts sent, Duplicates blocked, Resolved or healthy), tenant filter, and a collapsed "Platform details" section holding all technical IDs.
-Integrations page: connector cards for HubSpot CRM and Slack Messaging with Test buttons, alert threshold slider, Slack channel setting, plus Widget / Live embed / Specs views.
 Badges: NEEDS ATTENTION = usage fell past the alert line and someone should look; HANDLED = a teammate acknowledged it and the CRM was updated; HEALTHY = normal usage.`;
 
 export async function POST(request) {
@@ -121,7 +122,7 @@ export async function POST(request) {
 
   if (/^(hi|hello|hey|yo)\b/.test(q)) {
     reply = `Hi! I'm the PulseGuard assistant. I can explain anything on this screen, tell you which account needs attention first, recap recent activity, or acknowledge a risk for you — that runs a real Fastn workflow. What would you like to know?`;
-  } else if (/what (does|is).*(high risk|risk)|high risk mean|explain.*risk|need(s)? attention/.test(q)) {
+  } else if (/what (does|is).*(high risk|risk)|high risk mean|explain.*(risk|needs? attention)/.test(q)) {
     reply = `HIGH RISK (shown as "needs attention") means a customer's weekly usage dropped by more than your alert line (${
       context.threshold ?? 'the'
     }%). PulseGuard has already diagnosed the account, written a note on their CRM timeline, and sent your team a Slack card${
@@ -165,7 +166,7 @@ export async function POST(request) {
     reply = `The alert line is ${context.threshold ?? 'a'}%: if an account's usage falls by more than that in a week, PulseGuard treats it as churn risk and starts the loop. You can tune it per tenant on the Integrations page.`;
   } else if (/(where|which page).*(see|find)|navigate|page/.test(q)) {
     reply =
-      'Three pages, in the left sidebar: Dashboard for account health and actions, Integrations to connect CRM/Slack and tune the alert line, Activity to see proof of every automated run. The assistant (me) is on every page.';
+      'Four pages in the left sidebar: Dashboard for account health and actions, Integrations for the 8-connector MCP catalog, Emails for alert dispatch delivery logs, and Activity for proof of every automated run. The assistant (me) is on every page.';
   } else if (/thank|thanks|great|nice|cool/.test(q)) {
     reply = "Any time. I'm here if you want a recap, a prioritisation, or an acknowledgement.";
   } else if (/help|what can you|options|features/.test(q)) {
