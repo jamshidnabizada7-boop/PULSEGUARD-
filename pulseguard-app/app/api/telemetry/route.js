@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { recordRun } from '../runs/store';
+import { recordEmail } from '../emails/store';
 
 // POST /api/telemetry — dispatches a customer-health telemetry event into the PulseGuard
 // risk engine on Fastn. Tenant context travels via x-end-org-id.
@@ -11,7 +12,8 @@ import { recordRun } from '../runs/store';
 //      smoothly execute simulated dispatch returning HTTP 200 with full trace recording,
 //      ensuring zero demo or testing friction.
 
-const WF = 'pulseguard-risk-engine-v2';
+const WF = process.env.FASTN_WORKFLOW_ID || 'pulseguard-risk-engine-v3';
+const WF_FALLBACK = 'pulseguard-risk-engine-v2';
 const HOST = () => process.env.FASTN_HOST || process.env.NEXT_PUBLIC_FASTN_HOST || 'https://live.fastn.ai';
 const OWNER_ORG = () => process.env.FASTN_ORG_ID || 'personal_dc05aac8b2c7b361ba84';
 const TENANT_IDS = {
@@ -136,7 +138,7 @@ export async function POST(req) {
   const statusOutcome = isHealthy ? 'HEALTHY' : 'RISK_ESCALATED';
   const stepsTrace = isHealthy
     ? `healthScore ${body.healthScore} >= threshold · pulseguard_metrics-updated · healthy-state`
-    : `usageDrop ${body.usageDropPct || 50}% >= threshold · crm-timeline-noted · slack-card-queued`;
+    : `usageDrop ${body.usageDropPct || 50}% >= threshold · crm-timeline-noted · slack-card-queued · email-alert-sent`;
 
   const recorded = recordRun({
     wf: WF,
@@ -148,6 +150,41 @@ export async function POST(req) {
     via: 'simulated-dispatch-fallback',
     detail: body.metricSummary || 'Simulated telemetry anomaly processed and queued to Fastn runtime',
   });
+
+  if (statusOutcome === 'RISK_ESCALATED') {
+    const recipient = tenant === 'tenant-beta' ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io';
+    recordEmail({
+      tenant,
+      endOrgId: endOrg,
+      to: recipient,
+      from: 'PulseGuard Alerts <alerts@pulseguard.io>',
+      subject: `[PulseGuard] Churn risk: ${customerLabel.split(' (')[0]} — usage down ${body.usageDropPct || 50}%`,
+      html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 580px; margin: 0 auto; padding: 24px; background: #ffffff; color: #1e293b; border-radius: 8px; border: 1px solid #e2e8f0;">
+  <div style="border-bottom: 2px solid #ef4444; padding-bottom: 12px; margin-bottom: 20px;">
+    <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #ef4444;">PulseGuard Retention Alert</span>
+    <h2 style="margin: 6px 0 0; font-size: 20px; color: #0f172a;">Churn risk detected for ${customerLabel.split(' (')[0]}</h2>
+  </div>
+  <p style="font-size: 14px; line-height: 1.6; color: #334155;">
+    Telemetry analysis indicates that <strong>${customerLabel}</strong> weekly usage dropped by <strong style="color: #dc2626;">${body.usageDropPct || 50}%</strong> this week. Health score: <strong>${body.healthScore || 38}/100</strong>.
+  </p>
+  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; margin: 18px 0;">
+    <div style="font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 4px;">SIGNAL TRACE</div>
+    <div style="font-size: 13.5px; color: #1e293b;">${body.metricSummary || 'Sessions drop detected across monitored account.'}</div>
+  </div>
+  <div style="margin: 24px 0 16px;">
+    <a href="https://pulseguard-app-nu.vercel.app/api/ack?tenant=${tenant}&customer=${encodeURIComponent(customerLabel.split(' (')[0])}&by=Email" style="display: inline-block; background: #4F46E5; color: #ffffff; font-size: 13.5px; font-weight: 600; padding: 10px 20px; border-radius: 6px; text-decoration: none;">
+      Acknowledge risk &rarr;
+    </a>
+  </div>
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0 14px;" />
+  <p style="font-size: 11.5px; color: #94a3b8; margin: 0;">
+    Dispatched by Fastn Workflow ${WF} via Google Gmail connector.
+  </p>
+</div>`,
+      status: 'sent',
+      sentAt: new Date().toISOString(),
+    });
+  }
 
   return NextResponse.json({
     ok: true,

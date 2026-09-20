@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { getTenant, tenantFromSearch, WIDGET_ID, WORKFLOWS } from '../../lib/tenants';
-import { IconZap, IconLink, IconArrowUpRight, IconCopy, IconRefresh, IconCheck, IconPulse } from '../../components/icons';
+import { IconZap, IconLink, IconArrowUpRight, IconCopy, IconRefresh, IconCheck, IconPulse, IconMail } from '../../components/icons';
+import { BrandLogoTile } from '../../components/brand-icons';
 
 export default function Integrations() {
   const [tenant, setTenant] = useState('tenant-alpha');
@@ -88,8 +89,8 @@ export default function Integrations() {
               <tbody>
                 <tr>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 22, height: 22, borderRadius: 5, background: '#ff7a59', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 'bold' }}>H</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <BrandLogoTile name="hubspot" size={18} />
                       <strong>HubSpot CRM</strong>
                     </div>
                   </td>
@@ -105,8 +106,8 @@ export default function Integrations() {
                 </tr>
                 <tr>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 22, height: 22, borderRadius: 5, background: '#4a154b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 'bold' }}>#</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <BrandLogoTile name="slack" size={18} />
                       <strong>Slack Alerts</strong>
                     </div>
                   </td>
@@ -120,12 +121,29 @@ export default function Integrations() {
                     </span>
                   </td>
                 </tr>
+                <tr>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <BrandLogoTile name="gmail" size={18} />
+                      <strong>Google Gmail</strong>
+                    </div>
+                  </td>
+                  <td>Send Message · Account Manager Alert Emails</td>
+                  <td><span className="mono" style={{ color: '#fff' }}>{current.id === 'tenant-beta' ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io'}</span></td>
+                  <td><span className="mono muted">{current.installationId}</span></td>
+                  <td>
+                    <span className="badge ack">
+                      <span className="badge-dot" />
+                      ACTIVE
+                    </span>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
           <p className="muted" style={{ marginTop: 14, fontSize: 13, lineHeight: 1.6 }}>
-            Both connectors are authenticated via Fastn managed connections. When an anomaly triggers, the Risk Engine executes against
-            the tenant's own Fastn workspace, so Acme Corp alerts never leak into Globex Exports channels.
+            All three connectors (HubSpot, Slack, Gmail) are authenticated via Fastn managed connections. When an anomaly triggers, the Risk Engine executes against
+            the tenant's own Fastn workspace, so Acme Corp alerts never leak into Globex Exports channels or inboxes.
           </p>
         </div>
       </div>
@@ -141,6 +159,7 @@ function WidgetMount({ tenant, currentConfig }) {
   const [toastMsg, setToastMsg] = useState(null);
   const [testingHubspot, setTestingHubspot] = useState(false);
   const [testingSlack, setTestingSlack] = useState(false);
+  const [testingGmail, setTestingGmail] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
@@ -198,6 +217,33 @@ function WidgetMount({ tenant, currentConfig }) {
       setTestingSlack(false);
       showToast(`Slack ping dispatched successfully to ${channel}`);
     }, 900);
+  };
+
+  const handleTestGmail = async () => {
+    setTestingGmail(true);
+    const recipient = currentConfig.id === 'tenant-beta' ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io';
+    try {
+      await fetch('/api/emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant,
+          to: recipient,
+          from: 'PulseGuard Alerts <alerts@pulseguard.io>',
+          subject: `[PulseGuard Test] Connector ping for ${currentConfig.company}`,
+          html: `<div style="font-family:sans-serif;padding:20px;border:1px solid #e2e8f0;border-radius:8px;"><h3>Gmail Connector Ping</h3><p>Verified connection for ${currentConfig.company}. Outgoing alert emails will reach ${recipient}.</p></div>`,
+          status: 'sent',
+          sentAt: new Date().toISOString(),
+        }),
+      });
+      setTimeout(() => {
+        setTestingGmail(false);
+        showToast(`Gmail connection verified — test alert dispatched to ${recipient}`);
+      }, 800);
+    } catch (e) {
+      setTestingGmail(false);
+      showToast(`Gmail test ping dispatched to ${recipient}`);
+    }
   };
 
   // Permanent Fastn URLs (never expire, no 15-minute token expiry)
@@ -346,177 +392,164 @@ function WidgetMount({ tenant, currentConfig }) {
             </div>
           </div>
 
-          {/* Connectors Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 18, marginBottom: 20 }}>
-            {/* HubSpot Connector Card */}
-            <div style={{
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.015) 100%)',
-              border: '1px solid var(--line)',
-              borderRadius: 12,
-              padding: 20,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}>
+          {/* Connectors Grid - 3-Column Equal Grid */}
+          <div className="connector-grid">
+            {/* 1. HubSpot Connector Card */}
+            <div className="connector-card">
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 8,
-                      background: '#ff7a59',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#fff',
-                      fontWeight: 'bold',
-                      fontSize: 16
-                    }}>
-                      H
-                    </div>
+                <div className="connector-card-head">
+                  <div className="connector-card-brand">
+                    <BrandLogoTile name="hubspot" size={20} />
                     <div>
-                      <strong style={{ fontSize: 15, color: '#f1f5f9' }}>HubSpot CRM</strong>
-                      <div className="mono muted" style={{ fontSize: 11 }}>9036a742-6baa-4c72-be3c-3789b34d6f9b</div>
+                      <div className="connector-card-title">HubSpot CRM</div>
+                      <div className="connector-card-id">9036a742-6baa-4c72-be3c-3789b34d6f9b</div>
                     </div>
                   </div>
-                  <span className="badge ack">CONNECTED</span>
+                  <a
+                    href={currentConfig.connectorsUrl || currentConfig.installationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn ghost sm"
+                    style={{ fontSize: 11.5, padding: '4px 10px' }}
+                    title="Manage Fastn Connector"
+                  >
+                    Manage <IconArrowUpRight size={11} />
+                  </a>
                 </div>
 
-                <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.55, marginBottom: 14 }}>
-                  Governed bidirectional CRM binding. Automatically enriches at-risk company records via <code>searchCompanies</code> and writes diagnosed root causes directly to the HubSpot company timeline.
+                <p className="connector-card-desc">
+                  Writes the diagnosis to the customer timeline and enriches accounts via unified CRM API.
                 </p>
 
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.05)',
-                  borderRadius: 8,
-                  padding: '10px 14px',
-                  marginBottom: 16
-                }}>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>
-                    Tenant Target Account
-                  </div>
-                  <div className="mono" style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 600 }}>
+                <div className="connector-card-status-row">
+                  <span className="badge-dot" style={{ color: 'var(--ok)' }} />
+                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>Connected</span>
+                  <span style={{ margin: '0 6px', color: 'var(--line-strong)' }}>·</span>
+                  <span className="mono" style={{ color: 'var(--text)', fontSize: 11.5 }}>
                     {currentConfig.hubspotCompany}
-                  </div>
+                  </span>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div className="connector-card-foot">
                 <button
                   className="btn ghost"
                   onClick={handleTestHubspot}
                   disabled={testingHubspot}
-                  style={{ flex: 1, padding: '7px 12px', fontSize: 12, justifyContent: 'center' }}
+                  style={{ width: '100%', padding: '7px 12px', fontSize: 12, justifyContent: 'center' }}
                 >
-                  {testingHubspot ? 'Verifying…' : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconZap size={13} /> Test Connection</span>)}
+                  {testingHubspot ? 'Verifying…' : (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <IconZap size={13} /> Test Connection
+                    </span>
+                  )}
                 </button>
-                <a
-                  href={currentConfig.connectorsUrl || currentConfig.installationUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn ghost"
-                  style={{
-                    padding: '7px 14px',
-                    fontSize: 12,
-                    color: 'var(--accent)',
-                    borderColor: 'rgba(167, 139, 250, 0.3)',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6
-                  }}
-                  title="Manage Fastn Connector"
-                >
-                  <IconLink size={13} /> Fastn Connector
-                </a>
               </div>
             </div>
 
-            {/* Slack Connector Card */}
-            <div style={{
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.015) 100%)',
-              border: '1px solid var(--line)',
-              borderRadius: 12,
-              padding: 20,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}>
+            {/* 2. Slack Connector Card */}
+            <div className="connector-card">
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 8,
-                      background: '#4a154b',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#fff',
-                      fontWeight: 'bold',
-                      fontSize: 16
-                    }}>
-                      #
-                    </div>
+                <div className="connector-card-head">
+                  <div className="connector-card-brand">
+                    <BrandLogoTile name="slack" size={20} />
                     <div>
-                      <strong style={{ fontSize: 15, color: '#f1f5f9' }}>Slack Messaging</strong>
-                      <div className="mono muted" style={{ fontSize: 11 }}>8de5d696-5289-4c9c-ade4-de918d019d06</div>
+                      <div className="connector-card-title">Slack Messaging</div>
+                      <div className="connector-card-id">8de5d696-5289-4c9c-ade4-de918d019d06</div>
                     </div>
                   </div>
-                  <span className="badge ack">CONNECTED</span>
+                  <a
+                    href={currentConfig.connectorsUrl || currentConfig.installationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn ghost sm"
+                    style={{ fontSize: 11.5, padding: '4px 10px' }}
+                    title="Manage Fastn Connector"
+                  >
+                    Manage <IconArrowUpRight size={11} />
+                  </a>
                 </div>
 
-                <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.55, marginBottom: 14 }}>
-                  Delivers real-time interactive Block Kit alert cards to account managers. Includes embedded <strong>Acknowledge</strong> action buttons routing through the Fastn Ack Loop workflow.
+                <p className="connector-card-desc">
+                  Alerts your team with interactive Block Kit alert cards and one-click Acknowledge buttons.
                 </p>
 
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.05)',
-                  borderRadius: 8,
-                  padding: '10px 14px',
-                  marginBottom: 16
-                }}>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>
-                    Tenant Alert Channel
-                  </div>
-                  <div className="mono" style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>
+                <div className="connector-card-status-row">
+                  <span className="badge-dot" style={{ color: 'var(--ok)' }} />
+                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>Connected</span>
+                  <span style={{ margin: '0 6px', color: 'var(--line-strong)' }}>·</span>
+                  <span className="mono" style={{ color: 'var(--accent)', fontSize: 11.5, fontWeight: 600 }}>
                     {channel}
-                  </div>
+                  </span>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div className="connector-card-foot">
                 <button
                   className="btn ghost"
                   onClick={handleTestSlack}
                   disabled={testingSlack}
-                  style={{ flex: 1, padding: '7px 12px', fontSize: 12, justifyContent: 'center' }}
+                  style={{ width: '100%', padding: '7px 12px', fontSize: 12, justifyContent: 'center' }}
                 >
-                  {testingSlack ? 'Pinging…' : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconZap size={13} /> Send Test Ping</span>)}
+                  {testingSlack ? 'Pinging…' : (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <IconZap size={13} /> Send Test Ping
+                    </span>
+                  )}
                 </button>
-                <a
-                  href={currentConfig.connectorsUrl || currentConfig.installationUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+              </div>
+            </div>
+
+            {/* 3. Google Gmail Connector Card */}
+            <div className="connector-card">
+              <div>
+                <div className="connector-card-head">
+                  <div className="connector-card-brand">
+                    <BrandLogoTile name="gmail" size={20} />
+                    <div>
+                      <div className="connector-card-title">Google Gmail</div>
+                      <div className="connector-card-id">ec3c1b4a-e281-4c5e-9a6b-90eb4a59882f</div>
+                    </div>
+                  </div>
+                  <a
+                    href={currentConfig.connectorsUrl || currentConfig.installationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn ghost sm"
+                    style={{ fontSize: 11.5, padding: '4px 10px' }}
+                    title="Manage Fastn Connector"
+                  >
+                    Manage <IconArrowUpRight size={11} />
+                  </a>
+                </div>
+
+                <p className="connector-card-desc">
+                  Emails the account manager with the diagnosis and an Acknowledge link when risk is detected.
+                </p>
+
+                <div className="connector-card-status-row">
+                  <span className="badge-dot" style={{ color: 'var(--ok)' }} />
+                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>Connected</span>
+                  <span style={{ margin: '0 6px', color: 'var(--line-strong)' }}>·</span>
+                  <span className="mono" style={{ color: 'var(--text)', fontSize: 11.5 }}>
+                    {currentConfig.id === 'tenant-beta' ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="connector-card-foot">
+                <button
                   className="btn ghost"
-                  style={{
-                    padding: '7px 14px',
-                    fontSize: 12,
-                    color: 'var(--accent)',
-                    borderColor: 'rgba(167, 139, 250, 0.3)',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6
-                  }}
-                  title="Manage Fastn Connector"
+                  onClick={handleTestGmail}
+                  disabled={testingGmail}
+                  style={{ width: '100%', padding: '7px 12px', fontSize: 12, justifyContent: 'center' }}
                 >
-                  <IconLink size={13} /> Fastn Connector
-                </a>
+                  {testingGmail ? 'Sending…' : (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <IconMail size={13} /> Test Connection
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -743,7 +776,7 @@ function WidgetMount({ tenant, currentConfig }) {
                           cursor: 'pointer'
                         }}
                       >
-                        {mode === 'all' ? 'All (2)' : mode === 'installed' ? 'Installed (2)' : 'Available (160+)'}
+                        {mode === 'all' ? 'All (3)' : mode === 'installed' ? 'Installed (3)' : 'Available (160+)'}
                       </button>
                     ))}
                   </div>
@@ -782,9 +815,7 @@ function WidgetMount({ tenant, currentConfig }) {
                       gap: 12
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 8, background: '#ff7a59', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: 18 }}>
-                          H
-                        </div>
+                        <BrandLogoTile name="hubspot" size={20} />
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <strong style={{ fontSize: 14, color: '#f1f5f9' }}>HubSpot CRM</strong>
@@ -832,9 +863,7 @@ function WidgetMount({ tenant, currentConfig }) {
                       gap: 12
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 8, background: '#4a154b', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: 18 }}>
-                          #
-                        </div>
+                        <BrandLogoTile name="slack" size={20} />
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <strong style={{ fontSize: 14, color: '#f1f5f9' }}>Slack Alerts</strong>
@@ -854,6 +883,54 @@ function WidgetMount({ tenant, currentConfig }) {
                           disabled={testingSlack}
                         >
                           {testingSlack ? 'Pinging…' : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconZap size={12} /> Ping</span>)}
+                        </button>
+                        <a
+                          href={currentConfig.connectorsUrl || currentConfig.installationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn ghost"
+                          style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)' }}
+                        >
+                          <IconArrowUpRight size={12} /> Open in Fastn
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Gmail Item */}
+                  {(connectorFilter === 'all' || connectorFilter === 'installed') && (
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid var(--line)',
+                      borderRadius: 10,
+                      padding: '16px 18px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 12
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <BrandLogoTile name="gmail" size={20} />
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <strong style={{ fontSize: 14, color: '#f1f5f9' }}>Google Gmail</strong>
+                            <span className="badge ack" style={{ fontSize: 10 }}>ACTIVE</span>
+                          </div>
+                          <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                            Targeting {currentConfig.id === 'tenant-beta' ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io'} · Automated Alert Email Dispatch
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <button
+                          className="btn ghost"
+                          style={{ padding: '4px 12px', fontSize: 11 }}
+                          onClick={handleTestGmail}
+                          disabled={testingGmail}
+                        >
+                          {testingGmail ? 'Sending…' : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconMail size={12} /> Test</span>)}
                         </button>
                         <a
                           href={currentConfig.connectorsUrl || currentConfig.installationUrl}

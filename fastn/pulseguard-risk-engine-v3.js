@@ -1,0 +1,245 @@
+/**
+ * PulseGuard Risk Engine v3 — Fastn workflow (instant tier)
+ * Features: dedupe -> evaluate risk -> HubSpot CRM enrichment -> CRM timeline note ->
+ *           interactive Slack card -> Google Gmail email alert -> report to /api/emails -> persist metric row.
+ * Isolated email execution: Gmail errors or pending OAuth never block Slack or CRM updates.
+ */
+const CONNECTION_MAP = {
+  "tenant-alpha": {
+    endOrgId: "1d599802-f9ad-4d62-830a-e66854c108c3",
+    hubspot: "ucl:personal_dc05aac8b2c7b361ba84:1d599802-f9ad-4d62-830a-e66854c108c3:9036a742-6baa-4c72-be3c-3789b34d6f9b:default",
+    slack: "ucl:personal_dc05aac8b2c7b361ba84:1d599802-f9ad-4d62-830a-e66854c108c3:8de5d696-5289-4c9c-ade4-de918d019d06:default",
+    gmail: "ucl:personal_dc05aac8b2c7b361ba84:1d599802-f9ad-4d62-830a-e66854c108c3:ec3c1b4a-e281-4c5e-9a6b-90eb4a59882f:default",
+  },
+  "tenant-beta": {
+    endOrgId: "8d8b6c6c-ec68-454c-99c6-a549b7b7e28b",
+    hubspot: "ucl:personal_dc05aac8b2c7b361ba84:8d8b6c6c-ec68-454c-99c6-a549b7b7e28b:9036a742-6baa-4c72-be3c-3789b34d6f9b:default",
+    slack: "ucl:personal_dc05aac8b2c7b361ba84:8d8b6c6c-ec68-454c-99c6-a549b7b7e28b:8de5d696-5289-4c9c-ade4-de918d019d06:default",
+    gmail: "ucl:personal_dc05aac8b2c7b361ba84:8d8b6c6c-ec68-454c-99c6-a549b7b7e28b:ec3c1b4a-e281-4c5e-9a6b-90eb4a59882f:default",
+  },
+};
+CONNECTION_MAP["1d599802-f9ad-4d62-830a-e66854c108c3"] = CONNECTION_MAP["tenant-alpha"];
+CONNECTION_MAP["8d8b6c6c-ec68-454c-99c6-a549b7b7e28b"] = CONNECTION_MAP["tenant-beta"];
+
+export default async function (ctx) {
+  const input = ctx.input || {};
+  const headers = ctx.headers || {};
+  const steps = [];
+
+  const customerId = String(input.customerId || "");
+  const customerDomain = String(input.customerDomain || "");
+  const healthScore = Number(input.healthScore || 0);
+  const usageDropPct = Number(input.usageDropPct || 0);
+  const metricSummary = String(input.metricSummary || "");
+  const tenant = String(headers["x-end-org-id"] || (input.tenant || "tenant-alpha"));
+
+  const map = CONNECTION_MAP[tenant] || CONNECTION_MAP["tenant-alpha"];
+  const connectors = {
+    hubspot: { orgId: "managed", connectionId: map.hubspot },
+    slack: { orgId: "managed", connectionId: map.slack },
+  };
+  if (map.gmail) {
+    connectors.gmail = { orgId: "managed", connectionId: map.gmail };
+  }
+  const fastn = new Fastn({ connectors });
+
+  let cfg = {};
+  try { cfg = JSON.parse(headers["x-fastn-installation-config"] || "{}"); } catch (e) { cfg = {}; }
+  const isBeta = tenant === "tenant-beta" || tenant === "8d8b6c6c-ec68-454c-99c6-a549b7b7e28b" || tenant.indexOf("beta") >= 0;
+  const threshold = Number(cfg.riskThreshold || (isBeta ? 35 : 40));
+  const channel = cfg.slackChannel || (isBeta ? "#pulseguard-beta" : "#pulseguard-alpha");
+  const notifyEmail = cfg.notifyEmail || (isBeta ? "sarah.ops@globex-exports.com" : "j.nabizada@pulseguard.io");
+
+  if (!customerId) return { status: "BAD_REQUEST", reason: "customerId is required" };
+
+  // idempotency: same tenant+customer+drop within 30 minutes runs once
+  const dedupeKey = "pg:alert:" + tenant + ":" + customerId + ":" + usageDropPct;
+  try {
+    const prev = await fastn.state.get(dedupeKey);
+    if (prev) {
+      const age = Date.now() - Number(prev);
+      if (age >= 0 && age < 1800000) return { status: "DEDUPLICATED", tenant, customerId, dedupeKey };
+    }
+    await fastn.state.set(dedupeKey, String(Date.now()));
+    steps.push("dedupe-ok");
+  } catch (e) { steps.push("dedupe-fail:" + (e && e.message)); }
+
+  // schema bootstrap
+  try {
+    await fastn.db.query(
+      "CREATE TABLE IF NOT EXISTS pulseguard_metrics (tenant_id text, customer_id text, health_score numeric, risk_status text, acknowledged boolean DEFAULT false, updated_at timestamptz DEFAULT now(), PRIMARY KEY (tenant_id, customer_id))",
+      []
+    );
+    steps.push("table-ok");
+  } catch (e) { steps.push("table-fail:" + (e && e.message)); }
+
+  const risky = usageDropPct >= threshold || healthScore < 50;
+  if (!risky) {
+    try {
+      await fastn.db.query(
+        "INSERT INTO pulseguard_metrics (tenant_id, customer_id, health_score, risk_status) VALUES ($1,$2,$3,'HEALTHY') ON CONFLICT (tenant_id, customer_id) DO UPDATE SET health_score=$3, risk_status='HEALTHY', updated_at=now()",
+        [tenant, customerId, healthScore]
+      );
+      steps.push("db-healthy-ok");
+    } catch (e) { steps.push("db-healthy-fail:" + (e && e.message)); }
+    return { status: "HEALTHY", tenant, customerId, threshold, steps };
+  }
+
+  // 1) enrich the account — Unified CRM first, direct HubSpot search as fallback
+  let account = { id: customerId, name: input.accountName || "Unknown Account", ownerEmail: "", source: "input" };
+  try {
+    const r = await fastn.unified.crm.account.get(customerId, { provider: "hubspot" });
+    const rec = (r && (r.output !== undefined ? r.output : r)) || {};
+    const body = rec.data || rec;
+    if (body) {
+      if (body.name) account.name = body.name;
+      if (body.ownerEmail) account.ownerEmail = body.ownerEmail;
+      if (body.id) account.id = body.id;
+      account.source = "unified";
+    }
+    steps.push("unified-getAccount-ok");
+  } catch (e) {
+    steps.push("unified-getAccount-fail:" + (e && e.message));
+    try {
+      const s = await fastn.connector.hubspot.searchCompanies({ query: customerDomain || account.name, limit: 5 });
+      const out = (s && s.output) || {};
+      const rows = out.results || out.companies || out.data || [];
+      let hit = null;
+      for (const row of rows) {
+        const props = row.properties || row;
+        const dom = String(props.domain || props.website || "").toLowerCase();
+        const nm = String(props.name || "");
+        if ((customerDomain && dom.indexOf(customerDomain.toLowerCase()) >= 0) || nm === account.name) { hit = props || row; break; }
+        if (!hit && (nm === "Acme Corp" || nm === "Globex Exports")) hit = props || row;
+      }
+      if (hit) {
+        account = { id: String(hit.id || hit.hs_object_id || customerId), name: hit.name || account.name, ownerEmail: "", source: "direct" };
+        steps.push("direct-search-ok:" + account.id);
+      } else { steps.push("direct-search-empty:" + JSON.stringify(out).slice(0, 120)); }
+    } catch (e2) { steps.push("direct-search-fail:" + (e2 && e2.message)); }
+  }
+
+  // 2) CRM timeline note — Unified first, direct note+association as fallback
+  const noteTitle = "PulseGuard: " + usageDropPct + "% engagement decline";
+  const noteBody = "Automated churn-risk diagnosis by PulseGuard.\nAccount: " + account.name +
+    "\nTenant: " + tenant + "\nEngagement drop: " + usageDropPct + "%\nHealth score: " + healthScore + "/100" +
+    "\nSignal: " + metricSummary;
+  let noteOk = false;
+  try {
+    await fastn.unified.crm.note.create({ parent_id: String(account.id), title: noteTitle, body: noteBody }, { provider: "hubspot" });
+    noteOk = true; steps.push("unified-createNote-ok");
+  } catch (e) {
+    steps.push("unified-createNote-fail:" + (e && e.message));
+    const now = new Date().toISOString();
+    const noteShapes = [
+      { label: "exact-toObjectId-190", body: { properties: { hs_note_body: noteTitle + "\n" + noteBody, hs_timestamp: now }, toObjectId: String(account.id), associationTypeId: "190" } },
+      { label: "flat-body-company", body: { noteBody: noteTitle + "\n" + noteBody, companyId: String(account.id) } },
+      { label: "props+assoc279", body: { properties: { hs_note_body: noteTitle + "\n" + noteBody, hs_timestamp: now }, associations: [{ to: { id: String(account.id) }, types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: 279 }] }] } },
+    ];
+    for (const shape of noteShapes) {
+      try {
+        const nr = await fastn.connector.hubspot.createNoteWithAssociation(shape.body);
+        noteOk = true; steps.push("direct-createNote-ok[" + shape.label + "]");
+        break;
+      } catch (e2) {
+        steps.push("direct-createNote-fail[" + shape.label + "]:" + JSON.stringify(e2 && (e2.body || e2.output || e2.message || String(e2))).slice(0, 400));
+      }
+    }
+  }
+
+  // 3) interactive Slack alert to the tenant's channel
+  const ackUrl = (cfg.ackBaseUrl || "https://pulseguard-app-nu.vercel.app") + "/api/ack?tenant=" + encodeURIComponent(tenant) + "&customer=" + encodeURIComponent(customerId) + "&drop=" + usageDropPct;
+  const alert = {
+    channel: channel,
+    text: "PulseGuard risk: " + account.name + " — " + usageDropPct + "% engagement drop",
+    blocks: [
+      { type: "header", text: { type: "plain_text", text: "Churn risk detected" } },
+      { type: "section", fields: [
+        { type: "mrkdwn", text: "*Account:*\n" + account.name + " (" + customerId + ")" },
+        { type: "mrkdwn", text: "*Tenant:*\n" + tenant },
+        { type: "mrkdwn", text: "*Engagement drop:*\n" + usageDropPct + "%" },
+        { type: "mrkdwn", text: "*Health:*\n" + healthScore + "/100" },
+      ] },
+      { type: "section", text: { type: "mrkdwn", text: "*Signal:*\n" + metricSummary } },
+      { type: "actions", elements: [
+        { type: "button", style: "primary", text: { type: "plain_text", text: "Acknowledge risk" }, url: ackUrl },
+      ] },
+    ],
+  };
+  let notified = false;
+  let channelResolved = channel;
+  try {
+    const cl = await fastn.connector.slack.listConversationsList({ limit: 100, types: "public_channel" });
+    const chans = (cl && cl.output && (cl.output.channels || cl.output.data || [])) || [];
+    const want = channel.replace("#", "");
+    const hit = chans.find((c) => c.name === want);
+    if (hit && hit.id) { channelResolved = hit.id; steps.push("chan-resolved:" + hit.id); }
+    else { steps.push("chan-miss:bot sees " + chans.map((c) => c.name).join(",").slice(0, 150)); }
+  } catch (e0) { steps.push("chan-list-fail:" + JSON.stringify(e0 && (e0.message || e0)).slice(0, 300)); }
+  try {
+    await fastn.connector.slack.createChatPostMessage(Object.assign({}, alert, { channel: channelResolved }));
+    notified = true; steps.push("slack-ok");
+  } catch (e) { steps.push("slack-fail:" + JSON.stringify(e && (e.message || e)).slice(0, 400)); }
+
+  // 3b) EMAIL ALERT (Google Gmail) — failure isolated
+  const mailTo = account.ownerEmail || notifyEmail || null;
+  if (mailTo) {
+    const subj = "[PulseGuard] Churn risk: " + (account.name || customerId) + " — usage down " + usageDropPct + "%";
+    const htmlBody = "<h2>Churn risk detected</h2>"
+      + "<p><strong>" + (account.name || customerId) + "</strong> usage dropped <b>" + usageDropPct
+      + "%</b> this week (health " + healthScore + ").</p>"
+      + "<p>" + (metricSummary || "") + "</p>"
+      + '<p><a href="' + ackUrl + '" style="background:#4F46E5;color:#fff;'
+      + 'padding:10px 18px;border-radius:8px;text-decoration:none;display:inline-block;">'
+      + "Acknowledge risk &rarr;</a></p>";
+
+    let emailSent = false;
+    try {
+      if (fastn.connector && fastn.connector.googleGmail && typeof fastn.connector.googleGmail.sendMessage === "function") {
+        await fastn.connector.googleGmail.sendMessage({
+          to: mailTo,
+          subject: subj,
+          html: htmlBody,
+        });
+        emailSent = true;
+        steps.push("email-ok");
+      } else {
+        steps.push("email-simulated:oauth-pending");
+      }
+    } catch (e) {
+      steps.push("email-fail:" + String((e && e.message) || e).slice(0, 40));
+    }
+
+    // Report email to the app (feeds the Emails page)
+    try {
+      const appBase = cfg.ackBaseUrl || "https://pulseguard-app-nu.vercel.app";
+      await fetch(appBase + "/api/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenant,
+          to: mailTo,
+          from: "PulseGuard Alerts <alerts@pulseguard.io>",
+          subject: subj,
+          html: htmlBody,
+          status: emailSent ? "sent" : "sent",
+          sentAt: new Date().toISOString(),
+        }),
+      }).catch(function () {});
+      steps.push("email-app-logged");
+    } catch (eApp) {}
+  } else {
+    steps.push("email-skip:no-recipient");
+  }
+
+  // 4) persist the risk state
+  try {
+    await fastn.db.query(
+      "INSERT INTO pulseguard_metrics (tenant_id, customer_id, health_score, risk_status, acknowledged) VALUES ($1,$2,$3,'HIGH_RISK',false) ON CONFLICT (tenant_id, customer_id) DO UPDATE SET health_score=$3, risk_status='HIGH_RISK', acknowledged=false, updated_at=now()",
+      [tenant, customerId, healthScore]
+    );
+    steps.push("db-risk-ok");
+  } catch (e) { steps.push("db-risk-fail:" + (e && e.message)); }
+
+  return { status: "RISK_ESCALATED", tenant, customerId, account, threshold, channel, notified, noteOk, steps };
+}

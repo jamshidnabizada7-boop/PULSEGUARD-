@@ -49,11 +49,14 @@ console.log(`\n🚀 Dispatching live anomaly to Fastn for ${config.accountName} 
 console.log(`   Drop Percentage: ${config.usageDropPct}% (threshold: ${config.threshold}%)`);
 console.log(`   Target Channel:  ${config.channel} | HubSpot Company ID: ${config.customerId}`);
 
+const workflowId = process.env.FASTN_V3_WORKFLOW_ID || process.env.FASTN_WORKFLOW_ID || 'wf_fe925b124168';
+const notifyRecipient = isBeta ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io';
+
 const payload = {
   label: 'trigger',
   tool: 'fastnPlatform__testSavedWorkflow',
   args: {
-    id: 'wf_fe925b124168',
+    id: workflowId,
     input: {
       customerId: config.customerId,
       accountName: config.accountName,
@@ -66,6 +69,7 @@ const payload = {
       'x-end-org-id': config.endOrgId,
       'x-fastn-installation-config': JSON.stringify({
         slackChannel: config.channel,
+        notifyEmail: notifyRecipient,
         riskThreshold: config.threshold,
         ackBaseUrl: 'https://pulseguard-app-nu.vercel.app',
       }),
@@ -88,7 +92,7 @@ proc.on('close', (code) => {
     const json = JSON.parse(buffer);
     const textData = JSON.parse(json.trigger.text);
     const res = textData.data.result;
-    console.log(`\n✅ Execution Succeeded!`);
+    console.log(`\n✅ Execution Succeeded! (Workflow: ${workflowId})`);
     console.log(`   Status:       ${res.status}`);
 
     if (res.status === 'DEDUPLICATED') {
@@ -98,6 +102,10 @@ proc.on('close', (code) => {
     } else {
       console.log(`   Slack Alert:  ${res.notified ? 'DELIVERED to ' + res.channel : 'FAILED'}`);
       console.log(`   HubSpot Note: ${res.noteOk ? 'CREATED on Company ' + config.customerId : 'FAILED'}`);
+      const emailStep = (res.steps || []).find((s) => s.startsWith('email-'));
+      if (emailStep) {
+        console.log(`   Email Alert:  ${emailStep.includes('ok') ? 'DELIVERED to ' + notifyRecipient : emailStep}`);
+      }
     }
     if (res.steps) {
       console.log(`   Trace Steps:  ${res.steps.join(' -> ')}`);

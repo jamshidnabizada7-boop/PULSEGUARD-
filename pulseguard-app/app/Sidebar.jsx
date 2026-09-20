@@ -3,11 +3,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { TENANT_LIST, getTenant, tenantFromSearch, pushTenant } from '../lib/tenants';
-import { IconPulse, IconDashboard, IconSparkle, IconActivity, IconUsers, IconChevronDown, IconCheck } from '../components/icons';
+import { IconPulse, IconDashboard, IconSparkle, IconMail, IconActivity, IconUsers, IconChevronDown, IconCheck } from '../components/icons';
 
 const NAV = [
   { href: '/', label: 'Dashboard', icon: IconDashboard, match: '/' },
   { href: '/integrations', label: 'Integrations', icon: IconSparkle, match: '/integrations' },
+  { href: '/emails', label: 'Emails', icon: IconMail, match: '/emails' },
   { href: '/runs', label: 'Activity', icon: IconActivity, match: '/runs' },
 ];
 
@@ -18,7 +19,7 @@ export default function Sidebar() {
   const ddRef = useRef(null);
 
   useEffect(() => {
-    const sync = () => setTenant(tenantFromSearch(pathname === '/runs' ? 'all' : 'tenant-alpha'));
+    const sync = () => setTenant(tenantFromSearch(pathname === '/runs' || pathname === '/emails' ? 'all' : 'tenant-alpha'));
     sync();
     window.addEventListener('popstate', sync);
     window.addEventListener('tenantchange', sync);
@@ -48,7 +49,7 @@ export default function Sidebar() {
   const current = tenant !== 'all' ? getTenant(tenant) : null;
   const tenantParam = tenant && tenant !== 'all' ? `?tenant=${tenant}` : '';
   const options = [
-    ...(pathname === '/runs' ? [{ id: 'all', label: 'All tenants (audit)' }] : []),
+    ...(pathname === '/runs' || pathname === '/emails' ? [{ id: 'all', label: 'All tenants (audit)' }] : []),
     ...TENANT_LIST.map((t) => ({ id: t.id, label: t.label })),
   ];
 

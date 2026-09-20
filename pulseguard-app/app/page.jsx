@@ -83,6 +83,7 @@ export default function Home() {
   const [highlightType, setHighlightType] = useState('anomaly');
   const [welcomed, setWelcomed] = useState(true);
   const [progress, setProgress] = useState(null);
+  const [emailsDelivered, setEmailsDelivered] = useState(2);
   const progressTimers = useRef([]);
 
   useEffect(() => {
@@ -111,6 +112,21 @@ export default function Home() {
       window.removeEventListener('tenantchange', syncTenantFromUrl);
     };
   }, [syncTenantFromUrl]);
+
+  useEffect(() => {
+    fetch(`/api/emails?tenant=${tenant}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && data.ok) {
+          setEmailsDelivered(
+            data.deliveredCount !== undefined
+              ? data.deliveredCount
+              : (data.emails || []).filter((e) => e.status === 'delivered').length
+          );
+        }
+      })
+      .catch(() => {});
+  }, [tenant]);
 
   // The assistant can acknowledge risks from chat — keep the table in sync.
   useEffect(() => {
@@ -572,7 +588,7 @@ export default function Home() {
               <div className="step-num">Step 4</div>
               <div className="step-title">Team alerted</div>
               <div className="step-desc">
-                A clear alert card reaches {t.channel} with an Acknowledge button.
+                A Slack card and an email alert reach your team with a one-click Acknowledge button.
               </div>
             </div>
 
@@ -594,6 +610,7 @@ export default function Home() {
           </span>
           <span>Alerts to <strong>{t.channel}</strong></span>
           <span>Isolated workspace: <strong>{t.name}</strong></span>
+          <span>Emails delivered this week: <strong>{emailsDelivered}</strong></span>
         </div>
       </div>
 
