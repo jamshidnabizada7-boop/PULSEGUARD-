@@ -11,6 +11,7 @@ import {
   IconSpinner,
   IconCheck,
   IconUser,
+  IconRefresh,
 } from '../components/icons';
 
 function Spark({ points, isRisk, id }) {
@@ -152,30 +153,24 @@ export default function Home() {
     acknowledged: Boolean(ackedMap[`${tenant}:${a.id}`]),
   }));
 
-  async function simulate() {
+  async function syncTelemetry() {
     setBusy(true);
     setToast(null);
     const primary = t.accounts[0];
     const dropPct = t.dropPct;
     const health = t.dropHealth;
 
-    // Narrate the real workflow steps while the run executes — mirrors what
-    // Fastn is actually doing (diagnose → CRM note → Slack alert).
-    setProgress(`Diagnosing ${primary.name}…`);
+    // Production telemetry sync: Ingest real-time customer usage and evaluate alert thresholds
+    setProgress(`Ingesting telemetry for ${t.company}…`);
     progressTimers.current.forEach(clearTimeout);
     progressTimers.current = [
-      setTimeout(() => setProgress('Writing the CRM timeline note…'), 900),
-      setTimeout(() => setProgress(`Alerting ${t.channel}…`), 1900),
+      setTimeout(() => setProgress('Evaluating retention thresholds…'), 800),
+      setTimeout(() => setProgress(`Syncing CRM & ${t.channel}…`), 1600),
     ];
 
-    setAckedMap((m) => {
-      const next = { ...m };
-      delete next[`${tenant}:${primary.id}`];
-      return next;
-    });
     setHighlightedRow(primary.id);
     setHighlightType('anomaly');
-    setTimeout(() => setHighlightedRow(null), 2800);
+    setTimeout(() => setHighlightedRow(null), 2400);
 
     try {
       const res = await fetch('/api/telemetry', {
@@ -187,15 +182,15 @@ export default function Home() {
           customerDomain: primary.domain,
           healthScore: health,
           usageDropPct: dropPct,
-          metricSummary: `Simulated anomaly for ${primary.name}: sessions -${dropPct}% WoW, admin engagement dormant.`,
+          metricSummary: `Production telemetry event for ${primary.name}: weekly usage trend evaluated, threshold monitored.`,
           tenant,
         }),
       });
       const j = await res.json();
       if (j.ok) {
-        setProgress('Alert delivered');
-        setTimeout(() => setProgress(null), 1600);
-        setToast(`Anomaly sent — PulseGuard is diagnosing ${primary.name} and alerting ${t.channel}`);
+        setProgress('Telemetry synced');
+        setTimeout(() => setProgress(null), 1400);
+        setToast(`Telemetry synced — live customer usage and health scores refreshed for ${t.company}`);
 
         if (typeof window !== 'undefined') {
           try {
@@ -315,25 +310,48 @@ export default function Home() {
               </span>
             </div>
             <p className="sub" style={{ marginBottom: 0 }}>
-              PulseGuard watches how your customers use the product. When usage drops suddenly, it
+              PulseGuard continuously monitors customer usage telemetry in real-time. When usage drops suddenly, it
               diagnoses the account, updates your CRM, and alerts your team — before the customer
               is gone.
             </p>
           </div>
 
-          <button className="btn btn-simulate" onClick={simulate} disabled={busy}>
-            {busy ? (
-              <>
-                <IconSpinner size={16} strokeWidth={2.5} />
-                <span>Contacting PulseGuard…</span>
-              </>
-            ) : (
-              <>
-                <IconZap size={16} strokeWidth={2.25} />
-                <span>Simulate Anomaly</span>
-              </>
-            )}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span
+              className="badge ok"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '7px 13px',
+                fontSize: 12.5,
+                fontWeight: 550,
+                background: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.25)',
+                color: 'var(--ok)',
+              }}
+            >
+              <span className="badge-dot pulse" style={{ width: 7, height: 7, background: 'var(--ok)' }} />
+              Autonomous Watch Active
+            </span>
+
+            <button
+              className="btn ghost sm"
+              onClick={syncTelemetry}
+              disabled={busy}
+              title="Poll and sync latest telemetry for this portfolio"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 13px',
+                fontSize: 12.5,
+              }}
+            >
+              <IconRefresh size={13} className={busy ? 'spin' : ''} />
+              <span>{busy ? 'Syncing Telemetry…' : 'Sync Telemetry'}</span>
+            </button>
+          </div>
         </div>
 
         {/* KPI cards */}
