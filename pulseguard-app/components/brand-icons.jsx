@@ -193,7 +193,7 @@ export function GoogleMapsLogo({ size = 20, className = '' }) {
   );
 }
 
-export function StripeLogo({ size = 20, className = '' }) {
+export function StripeLogo({ size = 20, className = '', color = '#635BFF' }) {
   return (
     <svg
       width={size}
@@ -205,7 +205,7 @@ export function StripeLogo({ size = 20, className = '' }) {
     >
       <path
         d="M13.976 9.15c0-.853-.7-1.428-1.841-1.428-1.637 0-3.705.673-3.705.673l-.53-2.607s1.868-.788 4.254-.788c3.551 0 5.556 1.77 5.556 4.792 0 4.673-6.425 3.918-6.425 5.929 0 .977.854 1.517 2.052 1.517 1.895 0 4.218-.838 4.218-.838l.542 2.651s-2.023.864-4.761.864C9.52 20.915 7.5 19.144 7.5 16.21c0-4.624 6.476-3.877 6.476-7.06z"
-        fill="#635BFF"
+        fill={color}
       />
     </svg>
   );
@@ -228,10 +228,10 @@ export function FastnMCPLogo({ size = 20, className = '' }) {
       <circle cx="9" cy="8" r="1.5" fill="#00F5D4" />
       <circle cx="15" cy="16" r="1.5" fill="#A78BFA" />
       <defs>
-        <linearGradient id="fastn-brand-grad" x1="3" y1="2" x2="21" y2="22" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#00F5D4" />
-          <stop offset="0.5" stopColor="#38BDF8" />
-          <stop offset="1" stopColor="#8B5CF6" />
+        <linearGradient id="fastn-brand-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#00F5D4" />
+          <stop offset="50%" stopColor="#38BDF8" />
+          <stop offset="100%" stopColor="#8B5CF6" />
         </linearGradient>
       </defs>
     </svg>
@@ -239,7 +239,7 @@ export function FastnMCPLogo({ size = 20, className = '' }) {
 }
 export { FastnMCPLogo as FastnLogo };
 
-export function ResendLogo({ size = 20, className = '' }) {
+export function ResendLogo({ size = 20, className = '', color = '#09090b' }) {
   return (
     <svg
       width={size}
@@ -251,27 +251,48 @@ export function ResendLogo({ size = 20, className = '' }) {
     >
       <path
         d="M5 19V5h6.5a4.5 4.5 0 0 1 4.5 4.5 4.47 4.47 0 0 1-2.5 4l3.5 5.5h-3.4l-3-4.8H8v4.8H5zm3-7.5h3.5a1.8 1.8 0 1 0 0-3.6H8v3.6z"
-        fill="#09090b"
+        fill={color}
       />
     </svg>
   );
 }
 
-export function BrandLogo({ name, size = 20, className = '' }) {
+export function BrandLogo({ name, size = 20, className = '', color }) {
   const key = String(name || '').toLowerCase();
   if (key.includes('hubspot')) return <HubSpotLogo size={size} className={className} />;
   if (key.includes('slack')) return <SlackLogo size={size} className={className} />;
   if (key.includes('gmail')) return <GmailLogo size={size} className={className} />;
   if (key.includes('calendar')) return <GoogleCalendarLogo size={size} className={className} />;
   if (key.includes('map')) return <GoogleMapsLogo size={size} className={className} />;
-  if (key.includes('stripe')) return <StripeLogo size={size} className={className} />;
+  if (key.includes('stripe')) return <StripeLogo size={size} className={className} color={color || '#635BFF'} />;
   if (key.includes('fastn')) return <FastnMCPLogo size={size} className={className} />;
-  if (key.includes('resend')) return <ResendLogo size={size} className={className} />;
+  if (key.includes('resend')) return <ResendLogo size={size} className={className} color={color || '#09090b'} />;
   if (key.includes('google')) return <GoogleGLogo size={size} className={className} />;
   return null;
 }
 
 export function BrandLogoTile({ name, size = 20, className = '', tileBg }) {
+  const key = String(name || '').toLowerCase();
+  let defaultBg = '#FFFFFF';
+  let defaultBorder = '1px solid rgba(255, 255, 255, 0.12)';
+  let logoColor = undefined;
+
+  if (key.includes('fastn')) {
+    defaultBg = '#141322';
+    defaultBorder = '1px solid rgba(139, 92, 246, 0.3)';
+  } else if (key.includes('resend')) {
+    defaultBg = '#09090b';
+    defaultBorder = '1px solid rgba(255, 255, 255, 0.15)';
+    logoColor = '#FFFFFF';
+  } else if (key.includes('stripe')) {
+    defaultBg = '#635BFF';
+    defaultBorder = '1px solid rgba(99, 91, 255, 0.4)';
+    logoColor = '#FFFFFF';
+  }
+
+  const bg = tileBg || defaultBg;
+  const border = tileBg ? 'none' : defaultBorder;
+
   return (
     <div
       className={`brand-logo-tile ${className}`}
@@ -279,16 +300,17 @@ export function BrandLogoTile({ name, size = 20, className = '', tileBg }) {
         width: 38,
         height: 38,
         borderRadius: 10,
-        background: tileBg || '#FFFFFF',
+        background: bg,
+        border,
         padding: 7,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        boxShadow: '0 1px 4px rgba(0, 0, 0, 0.18)',
+        boxShadow: '0 1px 6px rgba(0, 0, 0, 0.28)',
       }}
     >
-      <BrandLogo name={name} size={size} />
+      <BrandLogo name={name} size={size} color={logoColor} />
     </div>
   );
 }

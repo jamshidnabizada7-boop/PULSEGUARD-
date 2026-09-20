@@ -64,10 +64,15 @@ console.log('\nTest Group 2: Brand Icons & SVGs');
   assert(brandIconsContent.includes('export function SlackLogo('), 'SlackLogo must be exported');
   assert(brandIconsContent.includes('export function GmailLogo('), 'GmailLogo must be exported');
   assert(brandIconsContent.includes('GoogleLogo'), 'GoogleLogo must be exported');
+  assert(brandIconsContent.includes('export function GoogleCalendarLogo('), 'GoogleCalendarLogo must be exported');
+  assert(brandIconsContent.includes('export function GoogleMapsLogo('), 'GoogleMapsLogo must be exported');
+  assert(brandIconsContent.includes('export function StripeLogo('), 'StripeLogo must be exported');
+  assert(brandIconsContent.includes('export function FastnMCPLogo('), 'FastnMCPLogo must be exported');
+  assert(brandIconsContent.includes('export function ResendLogo('), 'ResendLogo must be exported');
   assert(brandIconsContent.includes('#FF7A29'), 'HubSpot brand color missing');
   assert(brandIconsContent.includes('#EA4335'), 'Gmail brand color missing');
   assert(brandIconsContent.includes('#4A154B'), 'Slack #4A154B brand color missing');
-  console.log('  ✓ All brand icon exports and color signatures verified (#FF7A29, #EA4335, #4A154B)');
+  console.log('  ✓ All brand icon exports (Calendar, Maps, Stripe, Fastn MCP, Resend) and color signatures verified');
 }
 
 // 3. HTTP Server Verification
@@ -133,8 +138,15 @@ async function runHttpTests() {
     assert.strictEqual(integrations.status, 200, 'Integrations page failed');
     assert(integrations.data.includes('Google Gmail') || integrations.data.includes('Gmail'), 'Gmail connector missing from integrations');
     assert(integrations.data.includes('HubSpot CRM') || integrations.data.includes('HubSpot'), 'HubSpot missing');
-    assert(integrations.data.includes('Slack Messaging') || integrations.data.includes('Slack'), 'Slack missing');
-    console.log('  ✓ GET /integrations returns 200 with 3-connector brand grid');
+    assert(integrations.data.includes('Slack Messaging') || integrations.data.includes('Slack Alerts'), 'Slack missing');
+    assert(integrations.data.includes('Fastn MCP Remote Gateway'), 'Fastn MCP Gateway missing');
+    assert(integrations.data.includes('Fastn State & DB Engine') || integrations.data.includes('Fastn State Engine'), 'Fastn State missing');
+    assert(integrations.data.includes('Google Calendar'), 'Google Calendar missing');
+    assert(integrations.data.includes('Stripe Billing'), 'Stripe missing');
+    assert(integrations.data.includes('Resend'), 'Resend missing');
+    assert(integrations.data.includes('btn-link-status connected'), 'Connected green link button missing');
+    assert(integrations.data.includes('btn-link-status disconnected'), 'Disconnected red link button missing');
+    console.log('  ✓ GET /integrations returns 200 with full 8-MCP brand grid & glowing red/green buttons');
 
     // Test 3.3: GET /emails
     const emailsPage = await fetchPath('/emails');

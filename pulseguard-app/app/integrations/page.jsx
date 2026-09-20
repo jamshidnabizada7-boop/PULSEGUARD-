@@ -139,6 +139,16 @@ export default function Integrations() {
     INITIAL_CONNECTORS.forEach((c) => {
       map[c.id] = c.status;
     });
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('pulseguard_connector_states');
+        if (saved) {
+          return { ...map, ...JSON.parse(saved) };
+        }
+      } catch {
+        // ignore storage read failure
+      }
+    }
     return map;
   });
   const [testingId, setTestingId] = useState(null);
@@ -158,6 +168,15 @@ export default function Integrations() {
       window.removeEventListener('tenantchange', syncTenantFromUrl);
     };
   }, [syncTenantFromUrl]);
+
+  // Persist connector state changes to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('pulseguard_connector_states', JSON.stringify(connectorStates));
+    } catch {
+      // ignore storage write failure
+    }
+  }, [connectorStates]);
 
   const current = getTenant(tenant);
 
@@ -202,6 +221,12 @@ export default function Integrations() {
         } else if (connector.id === 'gmail') {
           const recipient = current.id === 'tenant-beta' ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io';
           showToast(`Gmail connection verified — test alert dispatched to ${recipient}`);
+        } else if (connector.id === 'calendar') {
+          showToast(`Google Calendar verified: 15-minute emergency sync slot available for ${current.company}`);
+        } else if (connector.id === 'stripe') {
+          showToast(`Stripe Billing telemetry verified: Webhook listener active for ${current.company}`);
+        } else if (connector.id === 'resend') {
+          showToast(`Resend Transactional Email verified: Backup mail route ready for ${current.company}`);
         } else {
           showToast(`${connector.name} verified: Connection active for ${current.company}`);
         }
@@ -336,7 +361,7 @@ export default function Integrations() {
           </div>
         </div>
 
-        {/* Clean 2-Column Connector Grid Matching Reference */}
+        {/* Clean 2-Column / 3-Column Connector Grid Matching Reference */}
         <div className="connector-grid-vnext">
           {filteredConnectors.map((connector) => {
             const isConnected = connectorStates[connector.id] === 'connected';
@@ -346,7 +371,7 @@ export default function Integrations() {
             return (
               <div
                 key={connector.id}
-                className={`connector-tile-vnext ${isConnected ? 'is-connected' : 'is-disconnected'}`}
+                className="connector-tile-vnext"
                 onClick={() => setModalConnector(connector)}
                 style={{ cursor: 'pointer' }}
               >
@@ -361,11 +386,6 @@ export default function Integrations() {
                           MCP
                         </span>
                       )}
-                      <span
-                        className={`connector-tile-badge ${isConnected ? 'connected' : 'disconnected'}`}
-                      >
-                        {isConnected ? 'CONNECTED' : 'DISCONNECTED'}
-                      </span>
                     </div>
 
                     <div className="connector-tile-desc" title={connector.desc}>
@@ -394,7 +414,7 @@ export default function Integrations() {
                   className={`btn-link-status ${isConnected ? 'connected' : 'disconnected'}`}
                   data-tooltip={
                     isConnected
-                      ? 'Connected · Click to test / ping'
+                      ? 'Connected · Click to test ping'
                       : 'Disconnected · Click to configure'
                   }
                   onClick={(e) => handleButtonClick(connector, e)}
@@ -448,134 +468,78 @@ export default function Integrations() {
                 <tr>
                   <th>Connector</th>
                   <th>Target Object / Scope</th>
-                  <th>Tenant Channel / Company</th>
+                  <th>Tenant Channel / Target</th>
                   <th>Installation Ref</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <BrandLogoTile name="hubspot" size={18} />
-                      <strong>HubSpot CRM</strong>
-                    </div>
-                  </td>
-                  <td>Unified CRM API · Company Timeline Notes</td>
-                  <td>
-                    <span className="mono" style={{ color: '#fff' }}>
-                      {current.hubspotCompany}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="mono muted">{current.installationId}</span>
-                  </td>
-                  <td>
-                    <span className="badge ack">
-                      <span className="badge-dot" />
-                      ACTIVE
-                    </span>
-                  </td>
-                </tr>
+                {INITIAL_CONNECTORS.map((c) => {
+                  const isConn = connectorStates[c.id] === 'connected';
+                  const target = getConnectorTarget(c);
+                  const displayName = c.id === 'slack' ? 'Slack Messaging' : c.name;
 
-                <tr>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <BrandLogoTile name="slack" size={18} />
-                      <strong>Slack Messaging</strong>
-                    </div>
-                  </td>
-                  <td>Interactive Churn Risk Cards</td>
-                  <td>
-                    <strong style={{ color: 'var(--accent)' }}>
-                      {current.channel || current.slackChannel}
-                    </strong>
-                  </td>
-                  <td>
-                    <span className="mono muted">{current.installationId}</span>
-                  </td>
-                  <td>
-                    <span className="badge ack">
-                      <span className="badge-dot" />
-                      ACTIVE
-                    </span>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <BrandLogoTile name="gmail" size={18} />
-                      <strong>Google Gmail</strong>
-                    </div>
-                  </td>
-                  <td>Send Message · Account Manager Alert Emails</td>
-                  <td>
-                    <span className="mono" style={{ color: '#fff' }}>
-                      {current.id === 'tenant-beta'
-                        ? 'sarah.ops@globex-exports.com'
-                        : 'j.nabizada@pulseguard.io'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="mono muted">{current.installationId}</span>
-                  </td>
-                  <td>
-                    <span
-                      className="badge"
-                      style={{
-                        background:
-                          connectorStates['gmail'] === 'connected'
-                            ? 'rgba(34, 197, 94, 0.12)'
-                            : 'rgba(239, 68, 68, 0.12)',
-                        color:
-                          connectorStates['gmail'] === 'connected'
-                            ? '#4ade80'
-                            : '#f87171',
-                        border:
-                          connectorStates['gmail'] === 'connected'
-                            ? '1px solid rgba(34, 197, 94, 0.25)'
-                            : '1px solid rgba(239, 68, 68, 0.25)',
-                      }}
-                    >
-                      <span className="badge-dot" />
-                      {connectorStates['gmail'] === 'connected' ? 'ACTIVE' : 'STANDBY'}
-                    </span>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <BrandLogoTile name="fastn" size={18} />
-                      <strong>Fastn MCP Remote Gateway</strong>
-                    </div>
-                  </td>
-                  <td>tools/call, tools/list, resources/read</td>
-                  <td>
-                    <span className="mono" style={{ color: 'var(--accent2)' }}>
-                      mcp.fastn.dev/v1
-                    </span>
-                  </td>
-                  <td>
-                    <span className="mono muted">{current.installationId}</span>
-                  </td>
-                  <td>
-                    <span className="badge ack">
-                      <span className="badge-dot" />
-                      ACTIVE
-                    </span>
-                  </td>
-                </tr>
+                  return (
+                    <tr key={c.id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <BrandLogoTile name={c.id} size={18} />
+                          <strong>{displayName}</strong>
+                          {c.isMcp && (
+                            <span
+                              className="connector-tile-badge mcp"
+                              style={{ fontSize: 9, padding: '1px 5px' }}
+                            >
+                              MCP
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td>{c.scope}</td>
+                      <td>
+                        <span
+                          className="mono"
+                          style={{
+                            color: isConn ? '#fff' : 'var(--text-dim)',
+                            fontSize: 12,
+                          }}
+                        >
+                          {target}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="mono muted">{current.installationId}</span>
+                      </td>
+                      <td>
+                        <span
+                          className="badge"
+                          style={{
+                            background: isConn
+                              ? 'rgba(34, 197, 94, 0.12)'
+                              : 'rgba(239, 68, 68, 0.1)',
+                            color: isConn ? '#4ade80' : '#f87171',
+                            border: isConn
+                              ? '1px solid rgba(34, 197, 94, 0.25)'
+                              : '1px solid rgba(239, 68, 68, 0.2)',
+                            fontSize: 11,
+                          }}
+                        >
+                          <span className="badge-dot" />
+                          {isConn ? 'ACTIVE' : 'STANDBY'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           <p className="muted" style={{ marginTop: 14, fontSize: 13, lineHeight: 1.6 }}>
-            All connectors (HubSpot, Slack, Fastn MCP Gateway, Gmail) are authenticated via Fastn
-            managed connections. When an anomaly triggers, the Risk Engine executes against
-            the tenant's own Fastn workspace, so Acme Corp alerts never leak into Globex Exports
-            channels or inboxes.
+            All 8 connectors (HubSpot, Slack, Fastn MCP Gateway, Fastn State Engine, Gmail, Google Calendar,
+            Stripe Billing, Resend) are authenticated via Fastn managed connections. When an anomaly triggers,
+            the Risk Engine executes against the tenant's own Fastn workspace, so Acme Corp alerts never leak
+            into Globex Exports channels or inboxes.
           </p>
         </div>
       </div>
