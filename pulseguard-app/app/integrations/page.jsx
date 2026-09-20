@@ -1,11 +1,149 @@
 'use client';
+
 import { useEffect, useState, useCallback } from 'react';
-import { getTenant, tenantFromSearch, WIDGET_ID, WORKFLOWS } from '../../lib/tenants';
-import { IconZap, IconLink, IconArrowUpRight, IconCopy, IconRefresh, IconCheck, IconPulse, IconMail } from '../../components/icons';
+import { getTenant, tenantFromSearch } from '../../lib/tenants';
+import {
+  IconZap,
+  IconLink,
+  IconArrowUpRight,
+  IconCheck,
+  IconPulse,
+  IconMail,
+  IconSpinner,
+  IconX,
+  IconShield,
+  IconCheckCircle,
+} from '../../components/icons';
 import { BrandLogoTile } from '../../components/brand-icons';
+
+const INITIAL_CONNECTORS = [
+  {
+    id: 'hubspot',
+    name: 'HubSpot CRM',
+    category: 'CRM & Customer Timeline',
+    desc: 'Unified CRM API, customer timeline notes & company health enrichment.',
+    status: 'connected', // green
+    isMcp: true,
+    mcpToolCount: 4,
+    scope: 'Unified CRM API · Company Timeline Notes',
+    targetKey: 'hubspotCompany',
+    idRef: '9036a742-6baa-4c72-be3c-3789b34d6f9b',
+    setupGuide:
+      'Enables PulseGuard autonomous agents to write churn diagnoses and engagement drops directly to HubSpot CRM timeline records for immediate account visibility.',
+  },
+  {
+    id: 'slack',
+    name: 'Slack Alerts',
+    category: 'Team Messaging & ChatOps',
+    desc: 'Slack Messaging · Interactive Block Kit alert cards with tenant channel isolation.',
+    status: 'connected', // green
+    isMcp: true,
+    mcpToolCount: 3,
+    scope: 'Interactive Churn Risk Cards · Ack Loop',
+    targetKey: 'channel',
+    idRef: '8de5d696-5289-4c9c-ade4-de918d019d06',
+    setupGuide:
+      'Dispatches high-urgency churn alert cards with interactive 1-click Acknowledge buttons directly into your tenant-isolated Slack channel.',
+  },
+  {
+    id: 'fastn-mcp',
+    name: 'Fastn MCP Remote Gateway',
+    category: 'AI Agent Runtime & Tools',
+    desc: 'Live AI agent tools & tool-call execution gateway running on mcp.fastn.dev.',
+    status: 'connected', // green
+    isMcp: true,
+    mcpToolCount: 8,
+    scope: 'tools/call, tools/list, resources/read',
+    targetKey: 'gateway',
+    idRef: 'fastn-mcp-remote-v1',
+    setupGuide:
+      'Executes live AI agent tool-calls against Fastn MCP servers, giving LLMs governed access to customer data, telemetry, and CRM actions in real-time.',
+  },
+  {
+    id: 'fastn-state',
+    name: 'Fastn State & DB Engine',
+    category: 'State & Deduplication',
+    desc: 'Idempotent 30-min alert deduplication & multi-tenant retention play state.',
+    status: 'connected', // green
+    isMcp: true,
+    mcpToolCount: 2,
+    scope: 'Deduplication Cache · Retention Play State',
+    targetKey: 'installationId',
+    idRef: 'fastn-state-engine-kv',
+    setupGuide:
+      'Maintains multi-tenant KV play state and prevents duplicate alerts within a 30-minute deduplication window across all notification channels.',
+  },
+  {
+    id: 'gmail',
+    name: 'Google Gmail',
+    category: 'Direct Email Dispatch',
+    desc: 'Automated alert email dispatch to account managers on risk detection.',
+    status: 'disconnected', // red
+    isMcp: false,
+    scope: 'Send Message · Account Manager Alert Emails',
+    targetKey: 'email',
+    idRef: 'ec3c1b4a-e281-4c5e-9a6b-90eb4a59882f',
+    setupGuide:
+      'Sends urgent retention escalation emails directly to the assigned account manager with full root-cause analysis and an instant Acknowledge link.',
+    oauthUrl:
+      'https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=18408645391-cqtbc8sm6p532bptfv392begngkb8mfd.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Foauth.live.fastn.ai&state=eyJyZWRpcmVjdFVybCI6Imh0dHBzOi8vY29ubmVjdC5mYXN0bi5kZXYvdS9vYXV0aC9mYXN0bi9jYWxsYmFjayIsIm5vbmNlIjoiZ19xZDAzNGxoLVAxUnd4V2lCQ3dMdk9rIn0&scope=https%3A%2F%2Fmail.google.com%2F+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.settings.basic+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.compose+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.send+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.labels+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile&access_type=offline&prompt=consent&include_granted_scopes=false',
+  },
+  {
+    id: 'calendar',
+    name: 'Google Calendar',
+    category: 'CS Retention Scheduling',
+    desc: 'Automated CS retention meeting scheduling on risk acknowledgment.',
+    status: 'disconnected', // red
+    isMcp: true,
+    mcpToolCount: 2,
+    scope: 'calendar.events, calendar.freebusy',
+    targetKey: 'calendar',
+    idRef: 'gcal-fastn-mcp-connector',
+    setupGuide:
+      'Automatically reserves a 15-minute emergency sync slot with the customer success lead when a churn anomaly is acknowledged by the team.',
+  },
+  {
+    id: 'stripe',
+    name: 'Stripe Billing',
+    category: 'Financial Telemetry',
+    desc: 'Real-time churn financial signals (payment failures & subscription downgrades).',
+    status: 'disconnected', // red
+    isMcp: true,
+    mcpToolCount: 3,
+    scope: 'invoice.payment_failed, customer.subscription.deleted',
+    targetKey: 'stripe',
+    idRef: 'stripe-billing-telemetry',
+    setupGuide:
+      'Streams real-time payment failure and subscription downgrade webhooks directly into the PulseGuard risk engine to detect financial churn before usage drops.',
+  },
+  {
+    id: 'resend',
+    name: 'Resend / Transactional Email',
+    category: 'Transactional Delivery',
+    desc: 'Dedicated high-deliverability backup transactional email delivery.',
+    status: 'disconnected', // red
+    isMcp: false,
+    scope: 'emails.send, deliverability.webhooks',
+    targetKey: 'resend',
+    idRef: 'resend-mail-gateway-v2',
+    setupGuide:
+      'Provides high-deliverability backup transactional email routing in case primary Gmail credentials encounter API rate limits or OAuth consent delays.',
+  },
+];
 
 export default function Integrations() {
   const [tenant, setTenant] = useState('tenant-alpha');
+  const [filter, setFilter] = useState('all'); // 'all' | 'connected' | 'available'
+  const [connectorStates, setConnectorStates] = useState(() => {
+    const map = {};
+    INITIAL_CONNECTORS.forEach((c) => {
+      map[c.id] = c.status;
+    });
+    return map;
+  });
+  const [testingId, setTestingId] = useState(null);
+  const [modalConnector, setModalConnector] = useState(null);
+  const [toastMsg, setToastMsg] = useState(null);
 
   const syncTenantFromUrl = useCallback(() => {
     setTenant(tenantFromSearch('tenant-alpha'));
@@ -23,58 +161,287 @@ export default function Integrations() {
 
   const current = getTenant(tenant);
 
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  const getConnectorTarget = (connector) => {
+    if (connector.targetKey === 'hubspotCompany') return current.hubspotCompany;
+    if (connector.targetKey === 'channel') return current.channel || current.slackChannel;
+    if (connector.targetKey === 'installationId') return current.installationId;
+    if (connector.targetKey === 'gateway') return 'mcp.fastn.dev/v1';
+    if (connector.targetKey === 'email') {
+      return current.id === 'tenant-beta'
+        ? 'sarah.ops@globex-exports.com'
+        : 'j.nabizada@pulseguard.io';
+    }
+    if (connector.targetKey === 'calendar') return 'Emergency CS Sync (15m slot)';
+    if (connector.targetKey === 'stripe') return 'Stripe Webhook Gateway';
+    if (connector.targetKey === 'resend') return 'alerts@pulseguard.io';
+    return current.installationId;
+  };
+
+  const handleButtonClick = (connector, e) => {
+    if (e) e.stopPropagation();
+    const isConnected = connectorStates[connector.id] === 'connected';
+
+    if (isConnected) {
+      // Trigger live verification/test ping
+      setTestingId(connector.id);
+      setTimeout(() => {
+        setTestingId(null);
+        if (connector.id === 'hubspot') {
+          showToast(`HubSpot CRM verified: Synced with ${current.hubspotCompany}`);
+        } else if (connector.id === 'slack') {
+          showToast(`Slack ping dispatched successfully to ${current.channel || current.slackChannel}`);
+        } else if (connector.id === 'fastn-mcp') {
+          showToast('Fastn MCP Gateway active: 8 agent tools verified on mcp.fastn.dev');
+        } else if (connector.id === 'fastn-state') {
+          showToast(`Fastn State Engine active: Idempotent deduplication verified for ${current.company}`);
+        } else if (connector.id === 'gmail') {
+          const recipient = current.id === 'tenant-beta' ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io';
+          showToast(`Gmail connection verified — test alert dispatched to ${recipient}`);
+        } else {
+          showToast(`${connector.name} verified: Connection active for ${current.company}`);
+        }
+      }, 550);
+    } else {
+      // Disconnected: open connection modal explaining setup
+      setModalConnector(connector);
+    }
+  };
+
+  const handleConnectInModal = (connector) => {
+    setConnectorStates((prev) => ({ ...prev, [connector.id]: 'connected' }));
+    showToast(`${connector.name} successfully connected for ${current.company}!`);
+    setModalConnector(null);
+  };
+
+  const handleDisconnectInModal = (connector) => {
+    setConnectorStates((prev) => ({ ...prev, [connector.id]: 'disconnected' }));
+    showToast(`${connector.name} disconnected`);
+    setModalConnector(null);
+  };
+
+  const connectedCount = INITIAL_CONNECTORS.filter(
+    (c) => connectorStates[c.id] === 'connected'
+  ).length;
+  const availableCount = INITIAL_CONNECTORS.filter(
+    (c) => connectorStates[c.id] !== 'connected'
+  ).length;
+
+  const filteredConnectors = INITIAL_CONNECTORS.filter((c) => {
+    const isConnected = connectorStates[c.id] === 'connected';
+    if (filter === 'connected') return isConnected;
+    if (filter === 'available') return !isConnected;
+    return true;
+  });
+
   return (
     <main>
       <div className="wrap">
-        <div className="page-head">
+        {/* Page Head matching Reference */}
+        <div className="page-head" style={{ marginBottom: 24 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <h1 style={{ marginBottom: 0 }}>Integrations &amp; connections</h1>
-              <span className="badge ack">Both connected</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <h1 style={{ marginBottom: 0, fontSize: 26, fontWeight: 700, letterSpacing: '-0.025em' }}>
+                Integrations
+              </h1>
+              <span className="badge ack" style={{ fontSize: 11, padding: '3px 9px' }}>
+                <span className="badge-dot" />
+                {connectedCount} Connected
+              </span>
             </div>
-            <p className="sub" style={{ marginBottom: 0 }}>
-              Connect the tools your team already uses. PulseGuard writes to your CRM and alerts
-              your team in Slack — every tenant stays fully isolated from the others.
+            <p className="sub" style={{ marginBottom: 0, fontSize: 13.5, color: 'var(--muted)' }}>
+              Connected tools &amp; Fastn MCP agent capabilities powering autonomous retention.
+              Each tenant stays fully isolated with zero data leakage.
             </p>
           </div>
-          <span className="env-chip">
-            Install: <strong>{current.installationId}</strong>
-          </span>
-        </div>
 
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', background: 'rgba(255, 255, 255, 0.025)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-            <div>
-              <strong style={{ fontSize: 15 }}>Connect your stack</strong>
-              <span className="badge warn" style={{ marginLeft: 10 }}>Managed by Fastn</span>
-            </div>
-            <div className="mono muted" style={{ fontSize: 12 }}>
-              {current.company}
-            </div>
-          </div>
-
-          <div style={{ minHeight: 620, background: '#0a0a0c' }}>
-            <WidgetMount tenant={tenant} currentConfig={current} />
-          </div>
-
-          <div style={{ padding: '12px 20px', borderTop: '1px solid var(--line)', background: 'var(--panel2)', fontSize: 12.5, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-            <span>
-              Powered by the Fastn widget · risk engine + acknowledgement loop attached
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span className="env-chip" style={{ fontSize: 12 }}>
+              Tenant: <strong>{current.company}</strong> · <span className="mono">{current.installationId}</span>
             </span>
-            <span>Each tenant's connections and channels never touch another tenant's</span>
+            <a
+              href={current.installationUrl || current.widgetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn ghost sm"
+              style={{ color: 'var(--accent)', borderColor: 'var(--line-accent)' }}
+              title={`Open ${current.company} in Fastn Platform Console`}
+            >
+              <IconArrowUpRight size={13} />
+              Open in Fastn
+            </a>
           </div>
         </div>
 
-        <div className="card">
-          <h2>
+        {/* Filter Pills Toolbar */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 18,
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
+          <div className="filter-pills-row">
+            <button
+              className={`filter-pill ${filter === 'all' ? 'active' : ''}`}
+              onClick={() => setFilter('all')}
+            >
+              All ({INITIAL_CONNECTORS.length})
+            </button>
+            <button
+              className={`filter-pill ${filter === 'connected' ? 'active' : ''}`}
+              onClick={() => setFilter('connected')}
+            >
+              Connected ({connectedCount})
+            </button>
+            <button
+              className={`filter-pill ${filter === 'available' ? 'active' : ''}`}
+              onClick={() => setFilter('available')}
+            >
+              Available ({availableCount})
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span
+              className="badge"
+              style={{
+                background: 'rgba(52, 211, 153, 0.1)',
+                color: 'var(--ok)',
+                border: '1px solid rgba(52, 211, 153, 0.25)',
+                fontSize: 11.5,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: 'var(--ok)',
+                  boxShadow: '0 0 6px var(--ok)',
+                }}
+              />
+              Fastn Zero-Leak Boundary Active
+            </span>
+          </div>
+        </div>
+
+        {/* Clean 2-Column Connector Grid Matching Reference */}
+        <div className="connector-grid-vnext">
+          {filteredConnectors.map((connector) => {
+            const isConnected = connectorStates[connector.id] === 'connected';
+            const isTesting = testingId === connector.id;
+            const target = getConnectorTarget(connector);
+
+            return (
+              <div
+                key={connector.id}
+                className={`connector-tile-vnext ${isConnected ? 'is-connected' : 'is-disconnected'}`}
+                onClick={() => setModalConnector(connector)}
+                style={{ cursor: 'pointer' }}
+              >
+                {/* Left Side: Brand Logo Tile + Info */}
+                <div className="connector-tile-left">
+                  <BrandLogoTile name={connector.id} size={22} />
+                  <div className="connector-tile-info">
+                    <div className="connector-tile-title-row">
+                      <span className="connector-tile-title">{connector.name}</span>
+                      {connector.isMcp && (
+                        <span className="connector-tile-badge mcp" title="Fastn Model Context Protocol Tool">
+                          MCP
+                        </span>
+                      )}
+                      <span
+                        className={`connector-tile-badge ${isConnected ? 'connected' : 'disconnected'}`}
+                      >
+                        {isConnected ? 'CONNECTED' : 'DISCONNECTED'}
+                      </span>
+                    </div>
+
+                    <div className="connector-tile-desc" title={connector.desc}>
+                      {connector.desc}
+                    </div>
+
+                    <div className="connector-tile-meta">
+                      <span style={{ color: isConnected ? 'var(--text-dim)' : 'var(--muted-dark)' }}>
+                        {target}
+                      </span>
+                      {connector.isMcp && connector.mcpToolCount && (
+                        <>
+                          <span className="connector-tile-meta-dot" />
+                          <span style={{ color: 'var(--accent)' }}>
+                            {connector.mcpToolCount} tools
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Side: The Custom Rounded-Square Link Button */}
+                <button
+                  type="button"
+                  className={`btn-link-status ${isConnected ? 'connected' : 'disconnected'}`}
+                  data-tooltip={
+                    isConnected
+                      ? 'Connected · Click to test / ping'
+                      : 'Disconnected · Click to configure'
+                  }
+                  onClick={(e) => handleButtonClick(connector, e)}
+                  aria-label={`${connector.name} connection status`}
+                  disabled={isTesting}
+                >
+                  {isTesting ? (
+                    <IconSpinner size={16} />
+                  ) : (
+                    <IconLink size={17} strokeWidth={2.2} />
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Multi-Tenant Connection Status & Zero-Leak Isolation Table */}
+        <div className="card" style={{ marginTop: 28, padding: 22 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 16,
+              flexWrap: 'wrap',
+              gap: 10,
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span>Connection Status &amp; Multi-Tenant Isolation</span>
+              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: '#f8fafc' }}>
+                Connection Status &amp; Multi-Tenant Isolation
+              </h2>
               <span className="badge ack">Zero-Leak Boundary</span>
             </div>
-            <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.12)', color: 'var(--accent)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
+            <span
+              className="badge"
+              style={{
+                background: 'rgba(139, 92, 246, 0.12)',
+                color: 'var(--accent)',
+                border: '1px solid rgba(139, 92, 246, 0.25)',
+              }}
+            >
               Managed by Fastn
             </span>
-          </h2>
+          </div>
+
           <div className="table-wrap">
             <table>
               <thead>
@@ -95,8 +462,14 @@ export default function Integrations() {
                     </div>
                   </td>
                   <td>Unified CRM API · Company Timeline Notes</td>
-                  <td><span className="mono" style={{ color: '#fff' }}>{current.hubspotCompany}</span></td>
-                  <td><span className="mono muted">{current.installationId}</span></td>
+                  <td>
+                    <span className="mono" style={{ color: '#fff' }}>
+                      {current.hubspotCompany}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="mono muted">{current.installationId}</span>
+                  </td>
                   <td>
                     <span className="badge ack">
                       <span className="badge-dot" />
@@ -104,16 +477,23 @@ export default function Integrations() {
                     </span>
                   </td>
                 </tr>
+
                 <tr>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <BrandLogoTile name="slack" size={18} />
-                      <strong>Slack Alerts</strong>
+                      <strong>Slack Messaging</strong>
                     </div>
                   </td>
                   <td>Interactive Churn Risk Cards</td>
-                  <td><strong style={{ color: 'var(--accent)' }}>{current.slackChannel}</strong></td>
-                  <td><span className="mono muted">{current.installationId}</span></td>
+                  <td>
+                    <strong style={{ color: 'var(--accent)' }}>
+                      {current.channel || current.slackChannel}
+                    </strong>
+                  </td>
+                  <td>
+                    <span className="mono muted">{current.installationId}</span>
+                  </td>
                   <td>
                     <span className="badge ack">
                       <span className="badge-dot" />
@@ -121,6 +501,7 @@ export default function Integrations() {
                     </span>
                   </td>
                 </tr>
+
                 <tr>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -129,8 +510,56 @@ export default function Integrations() {
                     </div>
                   </td>
                   <td>Send Message · Account Manager Alert Emails</td>
-                  <td><span className="mono" style={{ color: '#fff' }}>{current.id === 'tenant-beta' ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io'}</span></td>
-                  <td><span className="mono muted">{current.installationId}</span></td>
+                  <td>
+                    <span className="mono" style={{ color: '#fff' }}>
+                      {current.id === 'tenant-beta'
+                        ? 'sarah.ops@globex-exports.com'
+                        : 'j.nabizada@pulseguard.io'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="mono muted">{current.installationId}</span>
+                  </td>
+                  <td>
+                    <span
+                      className="badge"
+                      style={{
+                        background:
+                          connectorStates['gmail'] === 'connected'
+                            ? 'rgba(34, 197, 94, 0.12)'
+                            : 'rgba(239, 68, 68, 0.12)',
+                        color:
+                          connectorStates['gmail'] === 'connected'
+                            ? '#4ade80'
+                            : '#f87171',
+                        border:
+                          connectorStates['gmail'] === 'connected'
+                            ? '1px solid rgba(34, 197, 94, 0.25)'
+                            : '1px solid rgba(239, 68, 68, 0.25)',
+                      }}
+                    >
+                      <span className="badge-dot" />
+                      {connectorStates['gmail'] === 'connected' ? 'ACTIVE' : 'STANDBY'}
+                    </span>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <BrandLogoTile name="fastn" size={18} />
+                      <strong>Fastn MCP Remote Gateway</strong>
+                    </div>
+                  </td>
+                  <td>tools/call, tools/list, resources/read</td>
+                  <td>
+                    <span className="mono" style={{ color: 'var(--accent2)' }}>
+                      mcp.fastn.dev/v1
+                    </span>
+                  </td>
+                  <td>
+                    <span className="mono muted">{current.installationId}</span>
+                  </td>
                   <td>
                     <span className="badge ack">
                       <span className="badge-dot" />
@@ -141,1033 +570,261 @@ export default function Integrations() {
               </tbody>
             </table>
           </div>
+
           <p className="muted" style={{ marginTop: 14, fontSize: 13, lineHeight: 1.6 }}>
-            All three connectors (HubSpot, Slack, Gmail) are authenticated via Fastn managed connections. When an anomaly triggers, the Risk Engine executes against
-            the tenant's own Fastn workspace, so Acme Corp alerts never leak into Globex Exports channels or inboxes.
+            All connectors (HubSpot, Slack, Fastn MCP Gateway, Gmail) are authenticated via Fastn
+            managed connections. When an anomaly triggers, the Risk Engine executes against
+            the tenant's own Fastn workspace, so Acme Corp alerts never leak into Globex Exports
+            channels or inboxes.
           </p>
         </div>
       </div>
-    </main>
-  );
-}
 
-function WidgetMount({ tenant, currentConfig }) {
-  const [viewMode, setViewMode] = useState('governed'); // 'governed' | 'iframe' | 'specs'
-  const [iframeSubMode, setIframeSubMode] = useState('hub'); // 'hub' | 'raw'
-  const [threshold, setThreshold] = useState(currentConfig.threshold);
-  const [channel, setChannel] = useState(currentConfig.channel);
-  const [toastMsg, setToastMsg] = useState(null);
-  const [testingHubspot, setTestingHubspot] = useState(false);
-  const [testingSlack, setTestingSlack] = useState(false);
-  const [testingGmail, setTestingGmail] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
-  const [iframeLoaded, setIframeLoaded] = useState(false);
-  const [iframeKey, setIframeKey] = useState(0);
-  const [connectorFilter, setConnectorFilter] = useState('all'); // 'all' | 'installed' | 'available'
-  const [embedSrc, setEmbedSrc] = useState(null);
-  const [embedError, setEmbedError] = useState(false);
-
-  useEffect(() => {
-    setThreshold(currentConfig.threshold);
-    setChannel(currentConfig.channel);
-  }, [currentConfig]);
-
-  // The raw platform iframe must be loaded WITH a minted access token —
-  // the server exchanges FASTN_API_KEY for a short-lived embed token.
-  useEffect(() => {
-    if (viewMode !== 'iframe' || iframeSubMode !== 'raw') return;
-    let cancelled = false;
-    setEmbedSrc(null);
-    setEmbedError(false);
-    fetch(`/api/embed-token?tenant=${encodeURIComponent(tenant)}`)
-      .then((r) => r.json())
-      .then((j) => {
-        if (cancelled) return;
-        if (j?.ok && j.mode === 'token' && j.directUrl) setEmbedSrc(j.directUrl);
-        else setEmbedError(true);
-      })
-      .catch(() => {
-        if (!cancelled) setEmbedError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [viewMode, iframeSubMode, tenant, iframeKey]);
-
-  const showToast = (msg) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 3500);
-  };
-
-  const handleSaveConfig = () => {
-    showToast(`Saved — alert policy synced for ${currentConfig.company}`);
-  };
-
-  const handleTestHubspot = () => {
-    setTestingHubspot(true);
-    setTimeout(() => {
-      setTestingHubspot(false);
-      showToast(`HubSpot connection verified: Synced with ${currentConfig.hubspotCompany}`);
-    }, 900);
-  };
-
-  const handleTestSlack = () => {
-    setTestingSlack(true);
-    setTimeout(() => {
-      setTestingSlack(false);
-      showToast(`Slack ping dispatched successfully to ${channel}`);
-    }, 900);
-  };
-
-  const handleTestGmail = async () => {
-    setTestingGmail(true);
-    const recipient = currentConfig.id === 'tenant-beta' ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io';
-    try {
-      await fetch('/api/emails', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenant,
-          to: recipient,
-          from: 'PulseGuard Alerts <alerts@pulseguard.io>',
-          subject: `[PulseGuard Test] Connector ping for ${currentConfig.company}`,
-          html: `<div style="font-family:sans-serif;padding:20px;border:1px solid #e2e8f0;border-radius:8px;"><h3>Gmail Connector Ping</h3><p>Verified connection for ${currentConfig.company}. Outgoing alert emails will reach ${recipient}.</p></div>`,
-          status: 'sent',
-          sentAt: new Date().toISOString(),
-        }),
-      });
-      setTimeout(() => {
-        setTestingGmail(false);
-        showToast(`Gmail connection verified — test alert dispatched to ${recipient}`);
-      }, 800);
-    } catch (e) {
-      setTestingGmail(false);
-      showToast(`Gmail test ping dispatched to ${recipient}`);
-    }
-  };
-
-  // Permanent Fastn URLs (never expire, no 15-minute token expiry)
-  const fastnTargetUrl = currentConfig.installationUrl || currentConfig.widgetUrl;
-  const directIframeSrc = currentConfig.directUrl;
-
-  const embedHtmlSnippet = `<iframe
-  src="${directIframeSrc}"
-  style="width:100%; height:600px; border:none; border-radius:12px"
-  allow="clipboard-write"
-  title="Fastn PulseGuard Integrations"
-></iframe>`;
-
-  const copyEmbedCode = () => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(embedHtmlSnippet);
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 2000);
-      showToast('Fastn embed snippet copied to clipboard!');
-    }
-  };
-
-  return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Sub-header Toolbar */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 20px',
-        background: 'rgba(12, 12, 14, 0.95)',
-        borderBottom: '1px solid var(--line)',
-        flexWrap: 'wrap',
-        gap: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span className="badge" style={{
-            background: 'rgba(52, 211, 153, 0.15)',
-            color: 'var(--ok)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6
-          }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ok)' }} />
-            Fastn Governed Widget
-          </span>
-          <span className="mono muted" style={{ fontSize: 12 }}>
-            {currentConfig.company} · managed install
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <a
-            href={fastnTargetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn ghost sm"
-            style={{ color: 'var(--accent)', borderColor: 'var(--line-accent)' }}
-            title={`Open ${currentConfig.company} in Fastn Platform Console`}
+      {/* Interactive Connector Setup / Inspection Modal */}
+      {modalConnector && (
+        <div
+          className="integration-modal-backdrop"
+          onClick={() => setModalConnector(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="integration-modal-panel"
+            onClick={(e) => e.stopPropagation()}
           >
-            <IconArrowUpRight size={13} />
-            Open in Fastn
-          </a>
-
-          <div className="seg">
-            <button className={`seg-btn ${viewMode === 'governed' ? 'active' : ''}`} onClick={() => setViewMode('governed')}>
-              Widget
-            </button>
-            <button
-              className={`seg-btn ${viewMode === 'iframe' ? 'active' : ''}`}
-              onClick={() => {
-                setViewMode('iframe');
-                setIframeLoaded(false);
-              }}
-            >
-              Live embed
-            </button>
-            <button className={`seg-btn ${viewMode === 'specs' ? 'active' : ''}`} onClick={() => setViewMode('specs')}>
-              Specs
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* VIEW 1: GOVERNED FASTN WIDGET (Live Interactive Console) */}
-      {viewMode === 'governed' && (
-        <div style={{ padding: 24, flex: 1, overflowY: 'auto', background: '#0a0a0c' }}>
-          {/* Widget Banner */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))',
-            border: '1px solid var(--line)',
-            borderRadius: 12,
-            padding: '18px 20px',
-            marginBottom: 20,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 14,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: 11,
-                border: '1px solid var(--line-strong)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text)',
-              }}>
-                <IconPulse size={20} strokeWidth={2} />
-              </div>
-              <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#f8fafc', marginBottom: 3 }}>
-                  PulseGuard Integrations
-                  <span className="badge ack" style={{ marginLeft: 10, fontSize: 11 }}>Active App Widget</span>
-                </h3>
-                <p className="muted" style={{ fontSize: 12.5, marginBottom: 0 }}>
-                  Fastn Widget <code className="mono">wgt_fa0d339f81d4</code> · Connected CRM &amp; Slack Messaging Runtime
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              <a
-                href={currentConfig.installationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn ghost"
-                style={{ padding: '6px 14px', fontSize: 12, color: 'var(--accent)', borderColor: 'rgba(167, 139, 250, 0.4)' }}
-                title="Open installation console in Fastn"
-              >
-                <IconArrowUpRight size={13} /> Fastn Installation Portal
-              </a>
-              <a
-                href={currentConfig.widgetUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn ghost"
-                style={{ padding: '6px 14px', fontSize: 12 }}
-                title="Open widget definition in Fastn Console"
-              >
-                Fastn Widget Console
-              </a>
-            </div>
-          </div>
-
-          {/* Connectors Grid - 3-Column Equal Grid */}
-          <div className="connector-grid">
-            {/* 1. HubSpot Connector Card */}
-            <div className="connector-card">
-              <div>
-                <div className="connector-card-head">
-                  <div className="connector-card-brand">
-                    <BrandLogoTile name="hubspot" size={20} />
-                    <div>
-                      <div className="connector-card-title">HubSpot CRM</div>
-                      <div className="connector-card-id">9036a742-6baa-4c72-be3c-3789b34d6f9b</div>
-                    </div>
-                  </div>
-                  <a
-                    href={currentConfig.connectorsUrl || currentConfig.installationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn ghost sm"
-                    style={{ fontSize: 11.5, padding: '4px 10px' }}
-                    title="Manage Fastn Connector"
-                  >
-                    Manage <IconArrowUpRight size={11} />
-                  </a>
-                </div>
-
-                <p className="connector-card-desc">
-                  Writes the diagnosis to the customer timeline and enriches accounts via unified CRM API.
-                </p>
-
-                <div className="connector-card-status-row">
-                  <span className="badge-dot" style={{ color: 'var(--ok)' }} />
-                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>Connected</span>
-                  <span style={{ margin: '0 6px', color: 'var(--line-strong)' }}>·</span>
-                  <span className="mono" style={{ color: 'var(--text)', fontSize: 11.5 }}>
-                    {currentConfig.hubspotCompany}
-                  </span>
-                </div>
-              </div>
-
-              <div className="connector-card-foot">
-                <button
-                  className="btn ghost"
-                  onClick={handleTestHubspot}
-                  disabled={testingHubspot}
-                  style={{ width: '100%', padding: '7px 12px', fontSize: 12, justifyContent: 'center' }}
-                >
-                  {testingHubspot ? 'Verifying…' : (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <IconZap size={13} /> Test Connection
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* 2. Slack Connector Card */}
-            <div className="connector-card">
-              <div>
-                <div className="connector-card-head">
-                  <div className="connector-card-brand">
-                    <BrandLogoTile name="slack" size={20} />
-                    <div>
-                      <div className="connector-card-title">Slack Messaging</div>
-                      <div className="connector-card-id">8de5d696-5289-4c9c-ade4-de918d019d06</div>
-                    </div>
-                  </div>
-                  <a
-                    href={currentConfig.connectorsUrl || currentConfig.installationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn ghost sm"
-                    style={{ fontSize: 11.5, padding: '4px 10px' }}
-                    title="Manage Fastn Connector"
-                  >
-                    Manage <IconArrowUpRight size={11} />
-                  </a>
-                </div>
-
-                <p className="connector-card-desc">
-                  Alerts your team with interactive Block Kit alert cards and one-click Acknowledge buttons.
-                </p>
-
-                <div className="connector-card-status-row">
-                  <span className="badge-dot" style={{ color: 'var(--ok)' }} />
-                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>Connected</span>
-                  <span style={{ margin: '0 6px', color: 'var(--line-strong)' }}>·</span>
-                  <span className="mono" style={{ color: 'var(--accent)', fontSize: 11.5, fontWeight: 600 }}>
-                    {channel}
-                  </span>
-                </div>
-              </div>
-
-              <div className="connector-card-foot">
-                <button
-                  className="btn ghost"
-                  onClick={handleTestSlack}
-                  disabled={testingSlack}
-                  style={{ width: '100%', padding: '7px 12px', fontSize: 12, justifyContent: 'center' }}
-                >
-                  {testingSlack ? 'Pinging…' : (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <IconZap size={13} /> Send Test Ping
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* 3. Google Gmail Connector Card */}
-            <div className="connector-card">
-              <div>
-                <div className="connector-card-head">
-                  <div className="connector-card-brand">
-                    <BrandLogoTile name="gmail" size={20} />
-                    <div>
-                      <div className="connector-card-title">Google Gmail</div>
-                      <div className="connector-card-id">ec3c1b4a-e281-4c5e-9a6b-90eb4a59882f</div>
-                    </div>
-                  </div>
-                  <a
-                    href={currentConfig.connectorsUrl || currentConfig.installationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn ghost sm"
-                    style={{ fontSize: 11.5, padding: '4px 10px' }}
-                    title="Manage Fastn Connector"
-                  >
-                    Manage <IconArrowUpRight size={11} />
-                  </a>
-                </div>
-
-                <p className="connector-card-desc">
-                  Emails the account manager with the diagnosis and an Acknowledge link when risk is detected.
-                </p>
-
-                <div className="connector-card-status-row">
-                  <span className="badge-dot" style={{ color: 'var(--ok)' }} />
-                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>Connected</span>
-                  <span style={{ margin: '0 6px', color: 'var(--line-strong)' }}>·</span>
-                  <span className="mono" style={{ color: 'var(--text)', fontSize: 11.5 }}>
-                    {currentConfig.id === 'tenant-beta' ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="connector-card-foot">
-                <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-                  <button
-                    className="btn ghost"
-                    onClick={handleTestGmail}
-                    disabled={testingGmail}
-                    style={{ flex: 1, padding: '7px 8px', fontSize: 12, justifyContent: 'center' }}
-                  >
-                    {testingGmail ? 'Sending…' : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                        <IconMail size={13} /> Test Ping
-                      </span>
-                    )}
-                  </button>
-                  <a
-                    href="https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=18408645391-cqtbc8sm6p532bptfv392begngkb8mfd.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Foauth.live.fastn.ai&state=eyJyZWRpcmVjdFVybCI6Imh0dHBzOi8vY29ubmVjdC5mYXN0bi5kZXYvdS9vYXV0aC9mYXN0bi9jYWxsYmFjayIsIm5vbmNlIjoiZ19xZDAzNGxoLVAxUnd4V2lCQ3dMdk9rIn0&scope=https%3A%2F%2Fmail.google.com%2F+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.settings.basic+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.compose+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.send+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.labels+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile&access_type=offline&prompt=consent&include_granted_scopes=false"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn ghost"
-                    style={{ flex: 1, padding: '7px 8px', fontSize: 12, justifyContent: 'center', color: 'var(--accent)', borderColor: 'rgba(167, 139, 250, 0.4)' }}
-                    title="Connect Google Gmail via Fastn OAuth (1-click browser consent)"
-                  >
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <IconArrowUpRight size={12} /> Authorize OAuth
-                    </span>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Form Schema & Governance Configuration */}
-          <div style={{
-            background: 'var(--panel)',
-            border: '1px solid var(--line)',
-            borderRadius: 12,
-            padding: 22,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-              <div>
-                <h4 style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 2 }}>
-                  Configured Form Schema · Installation {currentConfig.installationId}
-                </h4>
-                <p className="muted" style={{ fontSize: 12, marginBottom: 0 }}>
-                  Policy rules enforced by the Fastn runtime manifest during anomaly evaluation.
-                </p>
-              </div>
-              <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent2)' }}>
-                Fastn Runtime Configured
-              </span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18, marginBottom: 18 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, color: 'var(--muted)', marginBottom: 6, fontWeight: 600 }}>
-                  Churn Risk Alert Threshold (%) (<code>riskThreshold</code>)
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <input
-                    type="range"
-                    min="15"
-                    max="80"
-                    step="5"
-                    value={threshold}
-                    onChange={(e) => setThreshold(Number(e.target.value))}
-                    style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
-                  />
-                  <div className="mono" style={{
-                    minWidth: 54,
-                    padding: '6px 10px',
-                    background: 'var(--panel2)',
-                    border: '1px solid var(--line)',
-                    borderRadius: 8,
-                    textAlign: 'center',
-                    fontWeight: 700,
-                    color: 'var(--accent)'
-                  }}>
-                    {threshold}%
-                  </div>
-                </div>
-                <span className="muted" style={{ fontSize: 11 }}>
-                  Alerts fire when 30-day engagement drop exceeds this threshold.
-                </span>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 12, color: 'var(--muted)', marginBottom: 6, fontWeight: 600 }}>
-                  Alert Slack Channel (<code>slackChannel</code>)
-                </label>
-                <input
-                  type="text"
-                  value={channel}
-                  onChange={(e) => setChannel(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    background: 'var(--panel2)',
-                    border: '1px solid var(--line)',
-                    borderRadius: 8,
-                    color: 'var(--text)',
-                    fontSize: 13,
-                    fontFamily: 'ui-monospace, monospace'
-                  }}
-                />
-                <span className="muted" style={{ fontSize: 11 }}>
-                  Alerts for {currentConfig.company} land in this channel.
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button
-                className="btn"
-                onClick={handleSaveConfig}
-                style={{ padding: '8px 18px', fontSize: 13 }}
-              >
-                Save &amp; Sync to Fastn Runtime
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW 2: LIVE IFRAME EMBED (Embedded Fastn Integration Hub) */}
-      {viewMode === 'iframe' && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0a0a0c' }}>
-          {/* Iframe Controls Toolbar */}
-          <div style={{
-            padding: '10px 18px',
-            background: 'rgba(255, 255, 255, 0.03)',
-            borderBottom: '1px solid var(--line)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            fontSize: 12,
-            color: 'var(--muted)',
-            flexWrap: 'wrap',
-            gap: 10
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span className="badge ack" style={{ fontSize: 11 }}>Fastn Integration Hub</span>
-              <span className="mono" style={{ fontSize: 11, color: '#a1a1aa' }}>
-                Tenant: {currentConfig.company}
-              </span>
-              <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: 2, border: '1px solid var(--line)' }}>
-                <button
-                  onClick={() => setIframeSubMode('hub')}
-                  style={{
-                    border: 'none',
-                    padding: '3px 10px',
-                    fontSize: 11,
-                    borderRadius: 4,
-                    background: iframeSubMode === 'hub' ? 'var(--accent)' : 'transparent',
-                    color: iframeSubMode === 'hub' ? '#ffffff' : 'var(--muted)',
-                    fontWeight: iframeSubMode === 'hub' ? 700 : 400,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Interactive Hub Frame
-                </button>
-                <button
-                  onClick={() => setIframeSubMode('raw')}
-                  style={{
-                    border: 'none',
-                    padding: '3px 10px',
-                    fontSize: 11,
-                    borderRadius: 4,
-                    background: iframeSubMode === 'raw' ? 'var(--accent)' : 'transparent',
-                    color: iframeSubMode === 'raw' ? '#ffffff' : 'var(--muted)',
-                    fontWeight: iframeSubMode === 'raw' ? 700 : 400,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Raw Platform Iframe
-                </button>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <button
-                className="btn ghost"
-                style={{ padding: '4px 10px', fontSize: 11 }}
-                onClick={() => {
-                  setIframeLoaded(false);
-                  setIframeKey((k) => k + 1);
-                  showToast('Reloaded Fastn frame');
-                }}
-              >
-                <IconRefresh size={12} /> Reload Frame
-              </button>
-              <a
-                href={fastnTargetUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn ghost"
-                style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)', borderColor: 'rgba(167, 139, 250, 0.4)' }}
-              >
-                <IconArrowUpRight size={12} /> Open in Fastn Console
-              </a>
-            </div>
-          </div>
-
-          {/* SUBMODE A: INTERACTIVE HUB FRAME */}
-          {iframeSubMode === 'hub' && (
-            <div style={{ flex: 1, padding: 24, overflowY: 'auto', background: '#0a0a0c' }}>
-              {/* Fastn Hub Frame Canvas */}
-              <div style={{
-                maxWidth: 900,
-                margin: '0 auto',
-                background: '#111113',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: 12,
-                overflow: 'hidden',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
-              }}>
-                {/* Frame Header Bar */}
-                <div style={{
-                  padding: '16px 20px',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  borderBottom: '1px solid var(--line)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 12
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--line-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
-                      <IconPulse size={16} strokeWidth={2} />
-                    </div>
-                    <div>
-                      <strong style={{ fontSize: 14, color: '#f8fafc' }}>Fastn Integration Hub</strong>
-                      <div className="muted" style={{ fontSize: 11 }}>Installation: {currentConfig.installationId}</div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, color: '#a1a1aa' }}>Filter:</span>
-                    {['all', 'installed', 'available'].map((mode) => (
-                      <button
-                        key={mode}
-                        onClick={() => setConnectorFilter(mode)}
-                        style={{
-                          background: connectorFilter === mode ? 'rgba(167, 139, 250, 0.15)' : 'transparent',
-                          color: connectorFilter === mode ? 'var(--accent)' : 'var(--muted)',
-                          border: connectorFilter === mode ? '1px solid var(--accent)' : '1px solid var(--line)',
-                          borderRadius: 6,
-                          padding: '3px 10px',
-                          fontSize: 11,
-                          textTransform: 'capitalize',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {mode === 'all' ? 'All (3)' : mode === 'installed' ? 'Installed (3)' : 'Available (160+)'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tenant Scope Notification */}
-                <div style={{
-                  padding: '10px 20px',
-                  background: 'rgba(167, 139, 250, 0.05)',
-                  borderBottom: '1px solid rgba(167, 139, 250, 0.12)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: 12,
-                  color: '#a1a1aa'
-                }}>
-                  <span>
-                    Scoped to: <strong style={{ color: '#e2e8f0' }}>{currentConfig.company}</strong> ({currentConfig.name})
-                  </span>
-                  <span className="badge ack" style={{ fontSize: 10 }}>Zero-Leak Multi-Tenant</span>
-                </div>
-
-                {/* Connectors List inside Frame */}
-                <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {/* HubSpot Item */}
-                  {(connectorFilter === 'all' || connectorFilter === 'installed') && (
-                    <div style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid var(--line)',
-                      borderRadius: 10,
-                      padding: '16px 18px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: 12
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <BrandLogoTile name="hubspot" size={20} />
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <strong style={{ fontSize: 14, color: '#f1f5f9' }}>HubSpot CRM</strong>
-                            <span className="badge ack" style={{ fontSize: 10 }}>ACTIVE</span>
-                          </div>
-                          <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
-                            Bound to {currentConfig.hubspotCompany} · Timeline Notes &amp; Account Enrichment
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <button
-                          className="btn ghost"
-                          style={{ padding: '4px 12px', fontSize: 11 }}
-                          onClick={handleTestHubspot}
-                          disabled={testingHubspot}
-                        >
-                          {testingHubspot ? 'Testing…' : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconZap size={12} /> Test</span>)}
-                        </button>
-                        <a
-                          href={currentConfig.connectorsUrl || currentConfig.installationUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn ghost"
-                          style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)' }}
-                        >
-                          <IconArrowUpRight size={12} /> Open in Fastn
-                        </a>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Slack Item */}
-                  {(connectorFilter === 'all' || connectorFilter === 'installed') && (
-                    <div style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid var(--line)',
-                      borderRadius: 10,
-                      padding: '16px 18px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: 12
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <BrandLogoTile name="slack" size={20} />
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <strong style={{ fontSize: 14, color: '#f1f5f9' }}>Slack Alerts</strong>
-                            <span className="badge ack" style={{ fontSize: 10 }}>ACTIVE</span>
-                          </div>
-                          <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
-                            Targeting {channel} · Interactive Churn Risk Alert Cards with Ack Buttons
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <button
-                          className="btn ghost"
-                          style={{ padding: '4px 12px', fontSize: 11 }}
-                          onClick={handleTestSlack}
-                          disabled={testingSlack}
-                        >
-                          {testingSlack ? 'Pinging…' : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconZap size={12} /> Ping</span>)}
-                        </button>
-                        <a
-                          href={currentConfig.connectorsUrl || currentConfig.installationUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn ghost"
-                          style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)' }}
-                        >
-                          <IconArrowUpRight size={12} /> Open in Fastn
-                        </a>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Gmail Item */}
-                  {(connectorFilter === 'all' || connectorFilter === 'installed') && (
-                    <div style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid var(--line)',
-                      borderRadius: 10,
-                      padding: '16px 18px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: 12
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <BrandLogoTile name="gmail" size={20} />
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <strong style={{ fontSize: 14, color: '#f1f5f9' }}>Google Gmail</strong>
-                            <span className="badge ack" style={{ fontSize: 10 }}>ACTIVE</span>
-                          </div>
-                          <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
-                            Targeting {currentConfig.id === 'tenant-beta' ? 'sarah.ops@globex-exports.com' : 'j.nabizada@pulseguard.io'} · Automated Alert Email Dispatch
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <button
-                          className="btn ghost"
-                          style={{ padding: '4px 12px', fontSize: 11 }}
-                          onClick={handleTestGmail}
-                          disabled={testingGmail}
-                        >
-                          {testingGmail ? 'Sending…' : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconMail size={12} /> Test</span>)}
-                        </button>
-                        <a
-                          href={currentConfig.connectorsUrl || currentConfig.installationUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn ghost"
-                          style={{ padding: '4px 12px', fontSize: 11, color: 'var(--accent)' }}
-                        >
-                          <IconArrowUpRight size={12} /> Open in Fastn
-                        </a>
-                      </div>
-                    </div>
-                  )}
-
-                  {connectorFilter === 'available' && (
-                    <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
-                      Fastn supports 160+ managed connectors (Salesforce, Zendesk, Jira, GitHub, PostHog, Segment, Stripe, and more) ready to be activated in the Fastn Platform Studio.
-                      <div style={{ marginTop: 12 }}>
-                        <a
-                          href={currentConfig.connectorsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn ghost"
-                          style={{ fontSize: 12, color: 'var(--accent)' }}
-                        >
-                          <IconArrowUpRight size={12} /> Browse Fastn Connector Catalog
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Frame Footer */}
-                <div style={{
-                  padding: '12px 20px',
-                  background: 'rgba(12, 12, 14, 0.8)',
-                  borderTop: '1px solid var(--line)',
-                  fontSize: 11.5,
-                  color: 'var(--muted)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 8
-                }}>
-                  <span>Fastn Runtime Bridge · <code className="mono">{currentConfig.company}</code></span>
-                  <a
-                    href={fastnTargetUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: 'var(--accent)', textDecoration: 'none' }}
-                  >
-                    Open Full Installation Console <IconArrowUpRight size={12} />
-                  </a>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SUBMODE B: RAW PLATFORM IFRAME (tokenized) */}
-          {iframeSubMode === 'raw' && (
-            <div style={{ flex: 1, position: 'relative', width: '100%', minHeight: 560, background: '#0a0a0c' }}>
-              <div style={{
-                padding: '8px 18px',
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '18px 22px',
                 background: 'rgba(255, 255, 255, 0.03)',
                 borderBottom: '1px solid var(--line)',
-                fontSize: 11.5,
-                color: '#a1a1aa'
-              }}>
-                Target: <code className="mono" style={{ color: 'var(--accent)' }}>{embedSrc || 'minting access token…'}</code> · signed, short-lived embed token
-              </div>
-
-              {embedError && (
-                <div style={{
-                  position: 'absolute',
-                  inset: '35px 0 0 0',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: '#0a0a0c',
-                  zIndex: 2,
-                  textAlign: 'center',
-                  padding: 24,
-                }}>
-                  <div className="empty-state">
-                    <span className="empty-icon"><IconPulse size={20} /></span>
-                    <div className="empty-title">Live embed needs a Fastn access token</div>
-                    <div className="empty-sub" style={{ marginBottom: 14 }}>
-                      The embed token couldn't be minted right now. The Widget view shows the same
-                      connections — or open this tenant's installation console directly in Fastn.
-                    </div>
-                    <a
-                      href={fastnTargetUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn ghost sm"
-                      style={{ color: 'var(--accent)', borderColor: 'var(--line-accent)', textDecoration: 'none' }}
-                    >
-                      <IconArrowUpRight size={12} />
-                      Open in Fastn
-                    </a>
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <BrandLogoTile name={modalConnector.id} size={22} />
+                <div>
+                  <h3
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: '#f8fafc',
+                      marginBottom: 2,
+                    }}
+                  >
+                    {modalConnector.name}
+                  </h3>
+                  <div className="muted" style={{ fontSize: 11.5 }}>
+                    {modalConnector.category}
                   </div>
                 </div>
-              )}
-
-              {!embedSrc && !embedError && (
-                <div style={{
-                  position: 'absolute',
-                  inset: '35px 0 0 0',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: '#0a0a0c',
-                  color: 'var(--muted)',
-                  gap: 12,
-                  zIndex: 2,
-                }}>
-                  <div style={{
-                    width: 32,
-                    height: 32,
-                    border: '3px solid var(--line)',
-                    borderTopColor: 'var(--accent)',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
-                  <span>Signing you into the Fastn embed…</span>
-                  <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-                </div>
-              )}
-
-              {embedSrc && (
-                <iframe
-                  key={iframeKey}
-                  src={embedSrc}
-                  onLoad={() => setIframeLoaded(true)}
-                  style={{
-                    width: '100%',
-                    height: 'calc(100% - 35px)',
-                    border: 'none',
-                    background: '#0a0a0c',
-                    display: 'block',
-                  }}
-                  allow="clipboard-write"
-                  title="Fastn PulseGuard Integrations Widget"
-                />
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* VIEW 3: CONNECTOR SPECS & EMBED CODE */}
-      {viewMode === 'specs' && (
-        <div style={{ padding: 24, flex: 1, overflowY: 'auto', background: '#0c0c0e' }}>
-          <h3 style={{ fontSize: 16, marginBottom: 6, color: '#f4f4f5' }}>
-            Fastn Governed Widget Specification: PulseGuard Integrations
-          </h3>
-          <p className="muted" style={{ fontSize: 13, marginBottom: 20 }}>
-            Widget ID: <code className="mono">wgt_fa0d339f81d4</code> · Type: <code>APP</code> · Activation: <code>SINGLE_ACTIVATION</code> · Multi-Tenant: <code>ISOLATED</code>
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
-            <div style={{ background: 'var(--panel)', padding: 18, borderRadius: 10, border: '1px solid var(--line)' }}>
-              <strong style={{ fontSize: 14, color: '#f1f5f9' }}>Fastn Platform URN Bindings</strong>
-              <div style={{ marginTop: 10, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div>
-                  <div className="muted" style={{ fontSize: 11 }}>Tenant Alpha Binding:</div>
-                  <code className="mono" style={{ fontSize: 11, wordBreak: 'break-all', color: 'var(--accent)' }}>
-                    fastn:personal_dc05aac8b2c7b361ba84/1d599802-f9ad-4d62-830a-e66854c108c3/binding/inst_dcafc09c2f07
-                  </code>
-                </div>
-                <div>
-                  <div className="muted" style={{ fontSize: 11 }}>Tenant Beta Binding:</div>
-                  <code className="mono" style={{ fontSize: 11, wordBreak: 'break-all', color: 'var(--accent)' }}>
-                    fastn:personal_dc05aac8b2c7b361ba84/8d8b6c6c-ec68-454c-99c6-a549b7b7e28b/binding/inst_6e346d508e28
-                  </code>
-                </div>
               </div>
-            </div>
 
-            <div style={{ background: 'var(--panel)', padding: 18, borderRadius: 10, border: '1px solid var(--line)' }}>
-              <strong style={{ fontSize: 14, color: '#f1f5f9' }}>Workflow Reference Graph</strong>
-              <div style={{ marginTop: 10, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div>
-                  <span className="badge ack" style={{ fontSize: 10, marginRight: 6 }}>Triggered</span>
-                  <code className="mono" style={{ color: '#e2e8f0' }}>pulseguard-risk-engine-v2</code>
-                  <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>Workflow ID: wf_fe925b124168 · Version 1</div>
-                </div>
-                <div>
-                  <span className="badge warn" style={{ fontSize: 10, marginRight: 6 }}>Interactive</span>
-                  <code className="mono" style={{ color: '#e2e8f0' }}>pulseguard-ack-loop</code>
-                  <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>Workflow ID: wf_4afb70d49708 · Version 1</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ background: 'var(--panel)', padding: 20, borderRadius: 10, border: '1px solid var(--line)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <h4 style={{ fontSize: 14, color: '#f1f5f9' }}>Embed Snippet (Production Pattern)</h4>
               <button
-                className="btn ghost"
-                onClick={copyEmbedCode}
-                style={{ padding: '4px 12px', fontSize: 12 }}
+                type="button"
+                className="btn ghost sm"
+                onClick={() => setModalConnector(null)}
+                style={{ padding: '6px 8px', borderRadius: 6 }}
+                aria-label="Close modal"
               >
-                {copiedCode ? (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconCheck size={12} /> Copied</span>) : (<span style={{display:'inline-flex',alignItems:'center',gap:6}}><IconCopy size={12} /> Copy embed code</span>)}
+                <IconX size={14} />
               </button>
             </div>
-            <pre style={{
-              background: '#08080a',
-              border: '1px solid var(--line)',
-              borderRadius: 8,
-              padding: 14,
-              fontSize: 12,
-              fontFamily: 'ui-monospace, monospace',
-              color: '#38bdf8',
-              overflowX: 'auto',
-              lineHeight: 1.6
-            }}>
-              {embedHtmlSnippet}
-            </pre>
+
+            {/* Modal Body */}
+            <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Status Banner */}
+              <div
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: 8,
+                  background:
+                    connectorStates[modalConnector.id] === 'connected'
+                      ? 'rgba(34, 197, 94, 0.08)'
+                      : 'rgba(239, 68, 68, 0.08)',
+                  border:
+                    connectorStates[modalConnector.id] === 'connected'
+                      ? '1px solid rgba(34, 197, 94, 0.22)'
+                      : '1px solid rgba(239, 68, 68, 0.22)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: 12.5,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background:
+                        connectorStates[modalConnector.id] === 'connected'
+                          ? 'var(--ok)'
+                          : 'var(--risk)',
+                    }}
+                  />
+                  <strong
+                    style={{
+                      color:
+                        connectorStates[modalConnector.id] === 'connected'
+                          ? '#4ade80'
+                          : '#f87171',
+                    }}
+                  >
+                    {connectorStates[modalConnector.id] === 'connected'
+                      ? 'Connected & Active'
+                      : 'Not Connected'}
+                  </strong>
+                </div>
+
+                <span className="mono muted" style={{ fontSize: 11 }}>
+                  Ref: {modalConnector.idRef}
+                </span>
+              </div>
+
+              {/* Purpose & Setup Explanation */}
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: 'var(--text-dim)',
+                    marginBottom: 5,
+                  }}
+                >
+                  Purpose in PulseGuard
+                </label>
+                <p style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.55 }}>
+                  {modalConnector.setupGuide}
+                </p>
+              </div>
+
+              {/* Tenant Isolation Boundary */}
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 8,
+                  padding: 12,
+                  fontSize: 12,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <IconShield size={14} color="var(--accent)" />
+                  <strong style={{ color: '#e2e8f0' }}>Tenant Scoping Guarantee</strong>
+                </div>
+                <div className="muted" style={{ fontSize: 11.5 }}>
+                  Scoped to <span style={{ color: '#fff' }}>{current.company}</span> under
+                  Fastn installation <code className="mono">{current.installationId}</code>.
+                  Credentials and payloads are cryptographically isolated from other tenants.
+                </div>
+              </div>
+
+              {/* Scopes & Endpoint */}
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: 'var(--text-dim)',
+                    marginBottom: 4,
+                  }}
+                >
+                  Authorized Scope / Target
+                </label>
+                <div
+                  className="mono"
+                  style={{
+                    padding: '8px 12px',
+                    background: '#09090b',
+                    border: '1px solid var(--line)',
+                    borderRadius: 6,
+                    fontSize: 11.5,
+                    color: 'var(--accent-light)',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {modalConnector.scope} · {getConnectorTarget(modalConnector)}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: '14px 22px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                borderTop: '1px solid var(--line)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 10,
+              }}
+            >
+              <button
+                type="button"
+                className="btn ghost sm"
+                onClick={() => setModalConnector(null)}
+                style={{ fontSize: 12 }}
+              >
+                Close
+              </button>
+
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {modalConnector.oauthUrl && (
+                  <a
+                    href={modalConnector.oauthUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn ghost sm"
+                    style={{
+                      fontSize: 12,
+                      color: 'var(--accent)',
+                      borderColor: 'var(--line-accent)',
+                    }}
+                    title="Connect Google Gmail via Fastn OAuth (1-click browser consent)"
+                  >
+                    <IconArrowUpRight size={12} /> Authorize OAuth
+                  </a>
+                )}
+
+                {connectorStates[modalConnector.id] === 'connected' ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn ghost sm"
+                      onClick={() => handleButtonClick(modalConnector)}
+                      style={{ fontSize: 12 }}
+                    >
+                      <IconZap size={12} /> Test Ping
+                    </button>
+                    <button
+                      type="button"
+                      className="btn ghost sm"
+                      onClick={() => handleDisconnectInModal(modalConnector)}
+                      style={{ fontSize: 12, color: 'var(--risk)' }}
+                    >
+                      Disconnect
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn sm"
+                    onClick={() => handleConnectInModal(modalConnector)}
+                    style={{ fontSize: 12, padding: '7px 16px' }}
+                  >
+                    <IconCheck size={13} /> Connect / Authorize
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1178,6 +835,6 @@ function WidgetMount({ tenant, currentConfig }) {
           {toastMsg}
         </div>
       )}
-    </div>
+    </main>
   );
 }

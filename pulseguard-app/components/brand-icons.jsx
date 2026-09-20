@@ -131,30 +131,161 @@ export function GoogleGLogo({ size = 20, className = '' }) {
 
 export { GoogleGLogo as GoogleLogo };
 
+export function GoogleCalendarLogo({ size = 20, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-label="Google Calendar"
+    >
+      <rect x="3" y="4" width="18" height="17" rx="3" fill="#FFFFFF" />
+      <path d="M18 4H6a3 3 0 0 0-3 3v2h18V7a3 3 0 0 0-3-3z" fill="#4285F4" />
+      <rect x="7" y="2" width="2" height="3.5" rx="1" fill="#EA4335" />
+      <rect x="15" y="2" width="2" height="3.5" rx="1" fill="#EA4335" />
+      <path d="M21 9v9a3 3 0 0 1-3 3h-4v-2h4a1 1 0 0 0 1-1V9h2z" fill="#34A853" />
+      <path d="M3 18a3 3 0 0 0 3 3h4v-2H6a1 1 0 0 1-1-1v-9H3v9z" fill="#FBBC05" />
+      <text
+        x="12"
+        y="17"
+        fill="#1e293b"
+        fontSize="7.5"
+        fontWeight="800"
+        textAnchor="middle"
+        fontFamily="Inter, -apple-system, sans-serif"
+      >
+        31
+      </text>
+    </svg>
+  );
+}
+
+export function GoogleMapsLogo({ size = 20, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-label="Google Maps"
+    >
+      <path
+        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+        fill="#EA4335"
+      />
+      <path
+        d="M12 2C9.4 2 7.2 3.4 6 5.5l6 7.5 6-7.5C16.8 3.4 14.6 2 12 2z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 13l-6-7.5C5.4 6.6 5 7.7 5 9c0 3.3 3.1 8 7 13V13z"
+        fill="#34A853"
+      />
+      <path
+        d="M12 13v9c3.9-5 7-9.7 7-13 0-1.3-.4-2.4-1-3.5L12 13z"
+        fill="#FBBC05"
+      />
+      <circle cx="12" cy="9" r="2.75" fill="#FFFFFF" />
+    </svg>
+  );
+}
+
+export function StripeLogo({ size = 20, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-label="Stripe"
+    >
+      <path
+        d="M13.976 9.15c0-.853-.7-1.428-1.841-1.428-1.637 0-3.705.673-3.705.673l-.53-2.607s1.868-.788 4.254-.788c3.551 0 5.556 1.77 5.556 4.792 0 4.673-6.425 3.918-6.425 5.929 0 .977.854 1.517 2.052 1.517 1.895 0 4.218-.838 4.218-.838l.542 2.651s-2.023.864-4.761.864C9.52 20.915 7.5 19.144 7.5 16.21c0-4.624 6.476-3.877 6.476-7.06z"
+        fill="#635BFF"
+      />
+    </svg>
+  );
+}
+
+export function FastnMCPLogo({ size = 20, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-label="Fastn MCP"
+    >
+      <path
+        d="M13.5 2L3 13.5h7.5L9 22l12-11.5h-7.5L13.5 2z"
+        fill="url(#fastn-brand-grad)"
+      />
+      <circle cx="9" cy="8" r="1.5" fill="#00F5D4" />
+      <circle cx="15" cy="16" r="1.5" fill="#A78BFA" />
+      <defs>
+        <linearGradient id="fastn-brand-grad" x1="3" y1="2" x2="21" y2="22" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#00F5D4" />
+          <stop offset="0.5" stopColor="#38BDF8" />
+          <stop offset="1" stopColor="#8B5CF6" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+export { FastnMCPLogo as FastnLogo };
+
+export function ResendLogo({ size = 20, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-label="Resend"
+    >
+      <path
+        d="M5 19V5h6.5a4.5 4.5 0 0 1 4.5 4.5 4.47 4.47 0 0 1-2.5 4l3.5 5.5h-3.4l-3-4.8H8v4.8H5zm3-7.5h3.5a1.8 1.8 0 1 0 0-3.6H8v3.6z"
+        fill="#09090b"
+      />
+    </svg>
+  );
+}
+
 export function BrandLogo({ name, size = 20, className = '' }) {
   const key = String(name || '').toLowerCase();
   if (key.includes('hubspot')) return <HubSpotLogo size={size} className={className} />;
   if (key.includes('slack')) return <SlackLogo size={size} className={className} />;
   if (key.includes('gmail')) return <GmailLogo size={size} className={className} />;
+  if (key.includes('calendar')) return <GoogleCalendarLogo size={size} className={className} />;
+  if (key.includes('map')) return <GoogleMapsLogo size={size} className={className} />;
+  if (key.includes('stripe')) return <StripeLogo size={size} className={className} />;
+  if (key.includes('fastn')) return <FastnMCPLogo size={size} className={className} />;
+  if (key.includes('resend')) return <ResendLogo size={size} className={className} />;
   if (key.includes('google')) return <GoogleGLogo size={size} className={className} />;
   return null;
 }
 
-export function BrandLogoTile({ name, size = 20, className = '' }) {
+export function BrandLogoTile({ name, size = 20, className = '', tileBg }) {
   return (
     <div
       className={`brand-logo-tile ${className}`}
       style={{
-        width: 36,
-        height: 36,
-        borderRadius: 9,
-        background: '#FFFFFF',
-        padding: 6,
+        width: 38,
+        height: 38,
+        borderRadius: 10,
+        background: tileBg || '#FFFFFF',
+        padding: 7,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+        boxShadow: '0 1px 4px rgba(0, 0, 0, 0.18)',
       }}
     >
       <BrandLogo name={name} size={size} />
