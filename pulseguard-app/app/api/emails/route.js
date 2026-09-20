@@ -28,7 +28,7 @@ export async function POST(req) {
     }
 
     const email = recordEmail(body);
-    return NextResponse.json({ ok: true, email });
+    return NextResponse.json({ ok: true, email }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
   }

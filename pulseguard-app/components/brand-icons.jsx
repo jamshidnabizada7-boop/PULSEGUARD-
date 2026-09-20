@@ -114,6 +114,8 @@ export function GoogleGLogo({ size = 20, className = '' }) {
   );
 }
 
+export { GoogleGLogo as GoogleLogo };
+
 export function BrandLogo({ name, size = 20, className = '' }) {
   const key = String(name || '').toLowerCase();
   if (key.includes('hubspot')) return <HubSpotLogo size={size} className={className} />;
