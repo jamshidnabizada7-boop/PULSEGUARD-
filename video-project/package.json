@@ -1,0 +1,17 @@
+{
+  "name": "pulseguard-video",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "render": "remotion render PulseGuardDemo out/pulseguard-demo.mp4"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.245",
+    "@remotion/cli": "^4.0.245",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
+    "puppeteer": "^24.4.0"
+  }
+}

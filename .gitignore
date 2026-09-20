@@ -5,3 +5,6 @@ node_modules/
 .DS_Store
 !*.env.example
 !.env.example
+.remotion/
+video-project/node_modules/
+video-project/out/
