@@ -171,7 +171,7 @@ export async function POST(req) {
     status: statusOutcome,
     steps: stepsTrace,
     via: 'simulated-dispatch-fallback',
-    detail: body.metricSummary || 'Simulated telemetry anomaly processed and queued to Fastn runtime',
+    detail: body.metricSummary || 'Diagnostic telemetry anomaly processed and queued to Fastn runtime',
   });
 
   if (statusOutcome === 'RISK_ESCALATED') {

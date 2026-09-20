@@ -23,12 +23,12 @@ const HUMAN_STATUS = {
 const HUMAN_VIA = {
   'fastn-runtime': 'Fastn runtime',
   'fastn-state-engine': 'Fastn runtime',
-  'live-webhook-trigger': 'Live webhook',
+  'live-webhook-trigger': 'Inbound webhook',
   'live-execute-endpoint': 'Live execution',
   'live-ack-workflow': 'Live execution',
   'api-ack': 'Dashboard',
-  'api-telemetry': 'Dashboard',
-  'simulated-dispatch': 'Demo simulation',
+  'api-telemetry': 'Inbound telemetry',
+  'simulated-dispatch': 'Diagnostic probe',
   'local-ack-fallback': 'Recorded locally',
 };
 
@@ -140,7 +140,7 @@ export default function Runs() {
           customerDomain: t.primaryDomain,
           healthScore: t.dropHealth,
           usageDropPct: t.dropPct,
-          metricSummary: `On-demand anomaly triggered for ${t.company}.`,
+          metricSummary: `Diagnostic anomaly probe dispatched for ${t.company}.`,
           tenant: targetTenant,
         }),
       });
@@ -150,14 +150,14 @@ export default function Runs() {
         try {
           const existing = JSON.parse(localStorage.getItem('pulseguard_runs') || '[]');
           const newRun = (j && j.run) ? j.run : {
-            id: `sim_${Date.now().toString(36)}`,
+            id: `probe_${Date.now().toString(36)}`,
             wf: 'pulseguard-risk-engine-v2',
             tenant: targetTenant,
             endOrgId: t.endOrgId,
             customer: `${t.company} (${t.primaryCustomerId})`,
             status: 'RISK_ESCALATED',
             tier: 'instant',
-            steps: `usageDrop ${t.dropPct}% >= threshold · crm-timeline-noted · slack-card-queued`,
+            steps: `usageDrop ${t.dropPct}% >= threshold · crm-timeline-noted · slack-card-queued · email-alert-sent`,
             at: new Date().toISOString(),
             via: (j && j.via) || 'simulated-dispatch-fallback',
           };
@@ -192,9 +192,9 @@ export default function Runs() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
               <h1 style={{ marginBottom: 0 }}>Activity &amp; proof</h1>
-              <span className="badge" style={{ color: 'var(--muted)' }}>
+              <span className="badge ack" style={{ fontSize: 12 }}>
                 <span className="badge-dot pulse" style={{ color: 'var(--ok)' }} />
-                Live
+                Ingestion Stream Active
               </span>
             </div>
             <p className="sub" style={{ marginBottom: 0 }}>
@@ -203,21 +203,27 @@ export default function Runs() {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="btn ghost" onClick={fetchRuns} style={{ fontSize: 13, padding: '9px 14px' }}>
               <IconRefresh size={14} />
               Refresh
             </button>
-            <button className="btn btn-simulate" onClick={triggerRun} disabled={triggering} style={{ fontSize: 13.5 }}>
+            <button
+              className="btn btn-simulate"
+              onClick={triggerRun}
+              disabled={triggering}
+              style={{ fontSize: 13, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--line-strong)' }}
+              title="Dispatch an automated synthetic anomaly probe to test Fastn risk engine and alerting pipeline"
+            >
               {triggering ? (
                 <>
                   <IconSpinner size={15} strokeWidth={2.5} />
-                  <span>Running…</span>
+                  <span>Probing…</span>
                 </>
               ) : (
                 <>
-                  <IconZap size={15} strokeWidth={2.25} />
-                  <span>Simulate a run</span>
+                  <IconZap size={14} strokeWidth={2.25} />
+                  <span>Trigger Diagnostic Probe</span>
                 </>
               )}
             </button>
@@ -232,7 +238,7 @@ export default function Runs() {
               <span className="icon-chip accent"><IconActivity size={15} /></span>
             </div>
             <div className="n">{runs.length}</div>
-            <div className="sub-tag"><span>Since this demo started</span></div>
+            <div className="sub-tag"><span>Active monitoring window</span></div>
           </div>
 
           <div className="kpi">
@@ -288,8 +294,8 @@ export default function Runs() {
                   )
                 )}
               </div>
-              <button className="btn ghost sm" onClick={clearHistory} title="Reset local demo events">
-                Reset demo history
+              <button className="btn ghost sm" onClick={clearHistory} title="Clear cached event traces">
+                Clear local view
               </button>
             </div>
           </div>
@@ -411,11 +417,11 @@ export default function Runs() {
                           <span className="empty-icon"><IconActivity size={22} /></span>
                           <div className="empty-title">No activity yet</div>
                           <div className="empty-sub">
-                            Simulate an anomaly to watch PulseGuard detect it, update the CRM, and alert your team.
+                            Inbound telemetry events will appear here automatically when customer metrics update or when a diagnostic probe is dispatched.
                           </div>
-                          <button className="btn btn-simulate" onClick={triggerRun} disabled={triggering} style={{ marginTop: 14 }}>
-                            <IconZap size={15} />
-                            Simulate a run
+                          <button className="btn ghost" onClick={triggerRun} disabled={triggering} style={{ marginTop: 14 }}>
+                            <IconZap size={14} />
+                            Trigger Diagnostic Probe
                           </button>
                         </div>
                       </td>
@@ -429,7 +435,7 @@ export default function Runs() {
           <div style={{ marginTop: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, color: 'var(--muted)', flexWrap: 'wrap', gap: 8 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <span className="badge-dot" style={{ color: 'var(--accent)' }} />
-              Mirrors the workflow history in the Fastn studio, plus local demo events
+              Mirrors real-time execution logs in Fastn platform runtime and inbound telemetry traces
             </span>
             <span>
               Last checked:{' '}

@@ -297,7 +297,7 @@ export default function EmailsPage() {
               <div className="empty-sub">
                 {search || filter !== 'all'
                   ? 'No alert emails match the current filters. Try clearing your search.'
-                  : 'Trigger an anomaly to see the first alert email sent to an account manager.'}
+                  : 'Alert emails will appear here as soon as a customer health score drops below the risk threshold.'}
               </div>
               <button
                 className="btn btn-simulate"

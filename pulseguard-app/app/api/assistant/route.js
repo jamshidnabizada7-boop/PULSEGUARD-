@@ -148,7 +148,7 @@ export async function POST(request) {
       } and ${HUMAN_STATUS[lastRun.status] || String(lastRun.status || '').toLowerCase()}. Every internal step succeeded — the full trace is on the Activity page.`;
     } else {
       reply =
-        'Nothing has run yet in this session. Press "Simulate anomaly" to watch PulseGuard detect a drop, update the CRM, and alert your team — then ask me what happened.';
+        'Telemetry ingestion is actively monitoring all accounts. No churn anomalies have crossed your threshold in this session. Ask me to check account health scores or review connector statuses.';
     }
   } else if (/sparkline|trend line|graph|chart|red line/.test(q)) {
     reply =
