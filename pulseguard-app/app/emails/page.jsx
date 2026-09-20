@@ -161,28 +161,10 @@ export default function EmailsPage() {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <button className="btn ghost" onClick={fetchEmails} style={{ fontSize: 13, padding: '8px 14px' }}>
               <IconRefresh size={14} />
               Refresh
-            </button>
-            <button
-              className="btn btn-simulate"
-              onClick={handleSimulateSend}
-              disabled={simulating}
-              style={{ fontSize: 13 }}
-            >
-              {simulating ? (
-                <>
-                  <IconSpinner size={14} />
-                  <span>Dispatching…</span>
-                </>
-              ) : (
-                <>
-                  <IconMail size={14} />
-                  <span>Send Test Alert</span>
-                </>
-              )}
             </button>
           </div>
         </div>
@@ -299,15 +281,6 @@ export default function EmailsPage() {
                   ? 'No alert emails match the current filters. Try clearing your search.'
                   : 'Alert emails will appear here as soon as a customer health score drops below the risk threshold.'}
               </div>
-              <button
-                className="btn btn-simulate"
-                onClick={handleSimulateSend}
-                disabled={simulating}
-                style={{ marginTop: 14 }}
-              >
-                <IconMail size={14} />
-                Send Test Alert
-              </button>
             </div>
           ) : (
             <div className="table-wrap">

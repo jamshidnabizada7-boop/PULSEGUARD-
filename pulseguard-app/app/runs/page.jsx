@@ -203,29 +203,10 @@ export default function Runs() {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <button className="btn ghost" onClick={fetchRuns} style={{ fontSize: 13, padding: '9px 14px' }}>
               <IconRefresh size={14} />
               Refresh
-            </button>
-            <button
-              className="btn btn-simulate"
-              onClick={triggerRun}
-              disabled={triggering}
-              style={{ fontSize: 13, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--line-strong)' }}
-              title="Dispatch an automated synthetic anomaly probe to test Fastn risk engine and alerting pipeline"
-            >
-              {triggering ? (
-                <>
-                  <IconSpinner size={15} strokeWidth={2.5} />
-                  <span>Probing…</span>
-                </>
-              ) : (
-                <>
-                  <IconZap size={14} strokeWidth={2.25} />
-                  <span>Trigger Diagnostic Probe</span>
-                </>
-              )}
             </button>
           </div>
         </div>
@@ -417,12 +398,8 @@ export default function Runs() {
                           <span className="empty-icon"><IconActivity size={22} /></span>
                           <div className="empty-title">No activity yet</div>
                           <div className="empty-sub">
-                            Inbound telemetry events will appear here automatically when customer metrics update or when a diagnostic probe is dispatched.
+                            Inbound telemetry events will appear here automatically when customer metrics stream in.
                           </div>
-                          <button className="btn ghost" onClick={triggerRun} disabled={triggering} style={{ marginTop: 14 }}>
-                            <IconZap size={14} />
-                            Trigger Diagnostic Probe
-                          </button>
                         </div>
                       </td>
                     </tr>
