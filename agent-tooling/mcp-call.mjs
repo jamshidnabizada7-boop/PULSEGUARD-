@@ -10,21 +10,39 @@ import readline from 'readline';
 import fs from 'fs';
 
 function parseArg(arg) {
-  const trimmed = arg.trim();
+  let trimmed = arg.trim();
   if (fs.existsSync(trimmed)) {
     return JSON.parse(fs.readFileSync(trimmed, 'utf8'));
   }
   try {
     return JSON.parse(trimmed);
-  } catch {
+  } catch {}
+
+  // Handle Windows cmd/PowerShell quote escaping: \" -> "
+  if (trimmed.includes('\\"')) {
     try {
-      const sanitized = trimmed
-        .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
-        .replace(/:\s*([a-zA-Z0-9_#/:.-]+)(\s*[,}])/g, ':"$1"$2');
-      return JSON.parse(sanitized);
-    } catch {
-      return (new Function('return (' + trimmed + ')'))();
-    }
+      return JSON.parse(trimmed.replace(/\\"/g, '"'));
+    } catch {}
+  }
+
+  // Strip outer quotes if wrapped
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    const unquoted = trimmed.slice(1, -1);
+    try {
+      return JSON.parse(unquoted);
+    } catch {}
+  }
+
+  try {
+    const sanitized = trimmed
+      .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+      .replace(/:\s*([a-zA-Z0-9_#/:.-]+)(\s*[,}])/g, ':"$1"$2');
+    return JSON.parse(sanitized);
+  } catch {
+    return (new Function('return (' + trimmed.replace(/\\/g, '') + ')'))();
   }
 }
 

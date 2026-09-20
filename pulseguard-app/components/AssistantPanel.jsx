@@ -62,6 +62,8 @@ export default function AssistantPanel() {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [expandedCards, setExpandedCards] = useState({});
+  const [sessionTitle, setSessionTitle] = useState('Assistant');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
 
   const listRef = useRef(null);
   const inputRef = useRef(null);
@@ -141,6 +143,8 @@ export default function AssistantPanel() {
     setMsgs([GREETING]);
     setInput('');
     setExpandedCards({});
+    setSessionTitle('Assistant');
+    setIsEditingTitle(false);
   }
 
   function toggleCardDetails(idx) {
@@ -313,15 +317,41 @@ export default function AssistantPanel() {
           <div className="chat-head">
             <div className="chat-head-text">
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="chat-title">Assistant</span>
-                <button
-                  className="chat-icon-btn"
-                  title="Rename session (decorative)"
-                  aria-label="Rename conversation"
-                  onClick={() => {}}
-                >
-                  <IconPencil size={12} />
-                </button>
+                {isEditingTitle ? (
+                  <input
+                    type="text"
+                    value={sessionTitle}
+                    autoFocus
+                    onChange={(e) => setSessionTitle(e.target.value)}
+                    onBlur={() => setIsEditingTitle(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') setIsEditingTitle(false);
+                      if (e.key === 'Escape') setIsEditingTitle(false);
+                    }}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid var(--line-strong)',
+                      borderRadius: 4,
+                      color: 'var(--text)',
+                      fontSize: 13,
+                      padding: '2px 6px',
+                      outline: 'none',
+                      width: 140,
+                    }}
+                  />
+                ) : (
+                  <>
+                    <span className="chat-title">{sessionTitle}</span>
+                    <button
+                      className="chat-icon-btn"
+                      title="Rename session"
+                      aria-label="Rename conversation"
+                      onClick={() => setIsEditingTitle(true)}
+                    >
+                      <IconPencil size={12} />
+                    </button>
+                  </>
+                )}
               </div>
               <div className="chat-sub">
                 {tenant.company} · {tenant.channel}

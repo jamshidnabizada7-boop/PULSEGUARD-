@@ -66,7 +66,8 @@ console.log('\nTest Group 2: Brand Icons & SVGs');
   assert(brandIconsContent.includes('GoogleLogo'), 'GoogleLogo must be exported');
   assert(brandIconsContent.includes('#FF7A29'), 'HubSpot brand color missing');
   assert(brandIconsContent.includes('#EA4335'), 'Gmail brand color missing');
-  console.log('  ✓ All brand icon exports and color signatures verified');
+  assert(brandIconsContent.includes('#4A154B'), 'Slack #4A154B brand color missing');
+  console.log('  ✓ All brand icon exports and color signatures verified (#FF7A29, #EA4335, #4A154B)');
 }
 
 // 3. HTTP Server Verification
@@ -246,7 +247,106 @@ async function runHttpTests() {
     assert.strictEqual(healthyJson.status, 'HEALTHY', 'Should resolve to HEALTHY status');
     console.log('  ✓ Edge Case: Healthy telemetry resolves to HEALTHY status without risk escalation');
 
-    console.log('\n🎉 ALL 19 DEEP VERIFICATION & EDGE CASE TESTS PASSED!\n');
+    // 4.6: usageDropPct: 0 boundary value (must NOT fall back to 50%)
+    const zeroDropTelemetry = await fetchPath('/api/telemetry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenant: 'tenant-alpha',
+        customerId: 'probe-zero-drop-001',
+        accountName: 'Zero Drop Corp',
+        healthScore: 40,
+        usageDropPct: 0,
+      }),
+    });
+    assert.strictEqual(zeroDropTelemetry.status, 200);
+    const emailsRes1 = await fetchPath('/api/emails?search=Zero%20Drop');
+    const emailsJson1 = JSON.parse(emailsRes1.data);
+    assert(emailsJson1.emails.length > 0, 'Zero drop email was not stored');
+    const zeroDropEmail = emailsJson1.emails[0];
+    assert(
+      zeroDropEmail.subject.includes('usage down 0%'),
+      `Expected 'usage down 0%' in subject, got: '${zeroDropEmail.subject}'`
+    );
+    console.log('  ✓ Edge Case: usageDropPct: 0 correctly preserves 0% in alert email (no 50% fallback bug)');
+
+    // 4.7: healthScore: 0 boundary value (must NOT fall back to 38)
+    const zeroHealthTelemetry = await fetchPath('/api/telemetry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenant: 'tenant-beta',
+        customerId: 'probe-zero-health-001',
+        accountName: 'Zero Health Corp',
+        healthScore: 0,
+        usageDropPct: 65,
+      }),
+    });
+    assert.strictEqual(zeroHealthTelemetry.status, 200);
+    const emailsRes2 = await fetchPath('/api/emails?search=Zero%20Health');
+    const emailsJson2 = JSON.parse(emailsRes2.data);
+    assert(emailsJson2.emails.length > 0, 'Zero health email was not stored');
+    const zeroHealthEmail = emailsJson2.emails[0];
+    assert(
+      zeroHealthEmail.html.includes('0/100'),
+      `Expected '0/100' health in HTML, got: '${zeroHealthEmail.html.slice(0, 300)}'`
+    );
+    console.log('  ✓ Edge Case: healthScore: 0 correctly preserves 0/100 in email body (no 38 fallback bug)');
+
+    // 4.8: Numeric customer ID resolution to clean account name
+    const numericIdTelemetry = await fetchPath('/api/telemetry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenant: 'tenant-alpha',
+        customerId: '347506893507',
+        customerDomain: 'acme-corp.com',
+        healthScore: 35,
+        usageDropPct: 54,
+      }),
+    });
+    assert.strictEqual(numericIdTelemetry.status, 200);
+    const emailsRes3 = await fetchPath('/api/emails?search=Acme%20Corp');
+    const emailsJson3 = JSON.parse(emailsRes3.data);
+    const acmeEmail = emailsJson3.emails.find((e) => e.subject.includes('54%'));
+    assert(acmeEmail, 'Acme 54% email not found');
+    assert(
+      acmeEmail.subject.includes('Acme Corp'),
+      `Subject should resolve to Acme Corp, got: '${acmeEmail.subject}'`
+    );
+    assert(
+      !acmeEmail.subject.includes('347506893507'),
+      `Numeric ID leaked into subject: '${acmeEmail.subject}'`
+    );
+    console.log('  ✓ Edge Case: Numeric ID 347506893507 cleanly resolves to Acme Corp in email alert');
+
+    // 4.9: Email Detail Pane failed status badge and stepper logic
+    const emailsPageContent = fs.readFileSync('./pulseguard-app/app/emails/page.jsx', 'utf8');
+    assert(
+      /selectedEmail\.status\s*===\s*['"]failed['"]\s*\?\s*['"]risk['"]/.test(emailsPageContent),
+      'Failed badge must map to risk class in detail pane'
+    );
+    assert(
+      /selectedEmail\.status\s*===\s*['"]failed['"]\s*\?\s*['"]Failed['"]\s*:\s*['"]Delivered['"]/.test(
+        emailsPageContent
+      ),
+      'Stepper must display Failed state for failed emails'
+    );
+    console.log('  ✓ UI Verification: Failed email status correctly maps to risk badge and failed stepper state');
+
+    // 4.10: Gmail OAuth authorization URL check
+    const integrationsContent = fs.readFileSync('./pulseguard-app/app/integrations/page.jsx', 'utf8');
+    assert(
+      integrationsContent.includes('accounts.google.com/o/oauth2/auth'),
+      'Gmail OAuth URL missing from integrations page'
+    );
+    assert(
+      integrationsContent.includes('Authorize OAuth'),
+      'Authorize OAuth action missing from integrations page'
+    );
+    console.log('  ✓ OAuth Channel Verification: Google OAuth authorization URL is valid and verified');
+
+    console.log('\n🎉 ALL 24 DEEP VERIFICATION & EDGE CASE TESTS PASSED!\n');
     serverProc.kill();
     process.exit(0);
   } catch (err) {

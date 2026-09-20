@@ -183,6 +183,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerId: primary.id,
+          accountName: primary.name,
           customerDomain: primary.domain,
           healthScore: health,
           usageDropPct: dropPct,

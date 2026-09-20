@@ -538,18 +538,32 @@ function WidgetMount({ tenant, currentConfig }) {
               </div>
 
               <div className="connector-card-foot">
-                <button
-                  className="btn ghost"
-                  onClick={handleTestGmail}
-                  disabled={testingGmail}
-                  style={{ width: '100%', padding: '7px 12px', fontSize: 12, justifyContent: 'center' }}
-                >
-                  {testingGmail ? 'Sending…' : (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <IconMail size={13} /> Test Connection
+                <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                  <button
+                    className="btn ghost"
+                    onClick={handleTestGmail}
+                    disabled={testingGmail}
+                    style={{ flex: 1, padding: '7px 8px', fontSize: 12, justifyContent: 'center' }}
+                  >
+                    {testingGmail ? 'Sending…' : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <IconMail size={13} /> Test Ping
+                      </span>
+                    )}
+                  </button>
+                  <a
+                    href="https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=18408645391-cqtbc8sm6p532bptfv392begngkb8mfd.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Foauth.live.fastn.ai&state=eyJyZWRpcmVjdFVybCI6Imh0dHBzOi8vY29ubmVjdC5mYXN0bi5kZXYvdS9vYXV0aC9mYXN0bi9jYWxsYmFjayIsIm5vbmNlIjoiZ19xZDAzNGxoLVAxUnd4V2lCQ3dMdk9rIn0&scope=https%3A%2F%2Fmail.google.com%2F+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.settings.basic+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.compose+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.send+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.labels+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile&access_type=offline&prompt=consent&include_granted_scopes=false"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn ghost"
+                    style={{ flex: 1, padding: '7px 8px', fontSize: 12, justifyContent: 'center', color: 'var(--accent)', borderColor: 'rgba(167, 139, 250, 0.4)' }}
+                    title="Connect Google Gmail via Fastn OAuth (1-click browser consent)"
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <IconArrowUpRight size={12} /> Authorize OAuth
                     </span>
-                  )}
-                </button>
+                  </a>
+                </div>
               </div>
             </div>
           </div>

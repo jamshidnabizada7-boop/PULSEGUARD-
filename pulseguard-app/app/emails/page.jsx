@@ -286,7 +286,7 @@ export default function EmailsPage() {
         </div>
 
         {/* Main Content Area: Split View Table + Detail Pane */}
-        <div className="email-split-layout">
+        <div className={`email-split-layout ${!selectedEmail ? 'no-detail' : ''}`}>
           {/* Email Table Card */}
           <div className="card email-table-card" style={{ padding: 0, overflow: 'hidden' }}>
             {loading ? (
@@ -437,7 +437,11 @@ export default function EmailsPage() {
                   </h3>
                   <span
                     className={`badge ${
-                      selectedEmail.status === 'delivered' ? 'ok' : 'healthy'
+                      selectedEmail.status === 'delivered'
+                        ? 'ok'
+                        : selectedEmail.status === 'failed'
+                        ? 'risk'
+                        : 'healthy'
                     }`}
                     style={{ textTransform: 'capitalize' }}
                   >
@@ -518,26 +522,40 @@ export default function EmailsPage() {
                         background:
                           selectedEmail.status === 'delivered'
                             ? 'rgba(74, 222, 128, 0.15)'
+                            : selectedEmail.status === 'failed'
+                            ? 'rgba(248, 113, 113, 0.15)'
                             : 'rgba(255, 255, 255, 0.05)',
-                        color: selectedEmail.status === 'delivered' ? 'var(--ok)' : 'var(--muted-dark)',
+                        color:
+                          selectedEmail.status === 'delivered'
+                            ? 'var(--ok)'
+                            : selectedEmail.status === 'failed'
+                            ? 'var(--risk)'
+                            : 'var(--muted-dark)',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: 10,
                       }}
                     >
-                      <IconCheck size={11} />
+                      {selectedEmail.status === 'failed' ? <IconX size={11} /> : <IconCheck size={11} />}
                     </span>
                     <span
                       style={{
                         fontWeight: 600,
-                        color: selectedEmail.status === 'delivered' ? 'var(--text)' : 'var(--muted)',
+                        color:
+                          selectedEmail.status === 'delivered'
+                            ? 'var(--text)'
+                            : selectedEmail.status === 'failed'
+                            ? 'var(--risk)'
+                            : 'var(--muted)',
                       }}
                     >
-                      Delivered
+                      {selectedEmail.status === 'failed' ? 'Failed' : 'Delivered'}
                     </span>
                     <span className="mono muted" style={{ fontSize: 11 }}>
-                      {selectedEmail.deliveredAt
+                      {selectedEmail.status === 'failed'
+                        ? 'delivery rejected'
+                        : selectedEmail.deliveredAt
                         ? new Date(selectedEmail.deliveredAt).toLocaleTimeString()
                         : selectedEmail.status === 'delivered'
                         ? 'confirmed'

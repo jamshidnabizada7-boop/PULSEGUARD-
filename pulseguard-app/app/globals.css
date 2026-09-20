@@ -1760,6 +1760,9 @@ input[type='range']::-moz-range-thumb:hover {
   gap: 20px;
   align-items: start;
 }
+.email-split-layout.no-detail {
+  grid-template-columns: 1fr;
+}
 @media (max-width: 1024px) {
   .email-split-layout {
     grid-template-columns: 1fr;

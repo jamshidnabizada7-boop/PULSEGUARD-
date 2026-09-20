@@ -2,6 +2,7 @@
   "name": "pulsegrid-analytics",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev -p 3210",
     "build": "next build",
