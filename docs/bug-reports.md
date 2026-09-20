@@ -100,3 +100,24 @@ Under moderate agent usage (~15 createWorkflow calls/hour), the endpoint starts 
 "Fastn Workspace is rate-limiting requests right now" with no `Retry-After` header, and the
 limit did not clear within 7 minutes of idle. Fine-grained deploy/publish via MCP tools would
 reduce the need to recreate workflows just to ship a code change (see #3).
+
+## 9. Google Gmail Platform Connector OAuth blocked by Google ("This app is blocked")
+
+**Severity: medium to high for email-channel integrations.**
+
+- **Repro**: Calling `fastnPlatform__initiateOauthConnection` for the platform Google Gmail
+  connector (`ec3c1b4a-e281-4c5e-9a6b-90eb4a59882f`) with auth method `5e2cd543-bb00-47a8-a16f-aeb42743b1fe`
+  returns a Google OAuth authorization URL with client ID `18408645391-cqtbc8sm6p532bptfv392begngkb8mfd.apps.googleusercontent.com`
+  requesting restricted scopes (`https://mail.google.com/`, `gmail.send`, `gmail.compose`, etc.).
+- When a user navigates to this URL with a standard Google account, Google terminates the consent flow with:
+  `"This app is blocked — This app tried to access sensitive info in your Google Account. To keep your account safe, Google blocked this access."` (HTTP status on `accounts.google.com/signin/oauth/warning`).
+- **Root Cause**: The Google Cloud OAuth app has not completed Google's OAuth Verification / CASA
+  security assessment for the restricted `https://mail.google.com/` scope, or the app is in Google Developer "Testing" mode without public publication.
+- **Architectural Recommendation**:
+  1. Reduce requested default scopes to the minimum necessary (`gmail.send` instead of the full `https://mail.google.com/` super-scope).
+  2. Complete Google OAuth App Verification for the Fastn community platform connector.
+  3. In the interim, provide a bring-your-own-OAuth-credentials option or fallback to standard SMTP / transactional providers (Resend, Mailgun, Brevo).
+- **Graceful Mitigation in PulseGuard**: Our Risk Engine v3 wraps email dispatch in an isolated `try/catch`
+  so that Slack Block Kit alerting and HubSpot timeline note creation continue uninterrupted, while our
+  Next.js `/emails` operations console displays simulation and telemetry records cleanly.
+

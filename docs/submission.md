@@ -157,6 +157,8 @@ During the development and testing of PulseGuard over the Fastn platform, our te
    - Connector action URL templates require `{{auth.baseUrl}}`, which the Keycloak OAuth flow does not populate.
 8. **Bug #8 — `createWorkflow` Rate Limiting Without `Retry-After`**:
    - ~15 createWorkflow requests per hour triggered rate limits with no retry header, impeding iterative agent development.
+9. **Bug #9 — Platform Google Gmail Connector OAuth Hard-Blocked by Google (Severity: Medium/High)**:
+   - Calling `initiateOauthConnection` for Fastn's platform Google Gmail connector (`ec3c1b4a-e281-4c5e-9a6b-90eb4a59882f`) returns an authorization URL requesting full restricted scopes (`https://mail.google.com/`). When end-users navigate to this URL, Google blocks it with: *"This app is blocked — This app tried to access sensitive info in your Google Account."* The platform OAuth client needs CASA verification or restricted scope reduction (`gmail.send` only).
 
 *Submitting these detailed findings provides immediate value to Fastn's core engineering team.*
 
