@@ -1753,46 +1753,105 @@ input[type='range']::-moz-range-thumb:hover {
   margin-top: auto;
 }
 
-/* ============ Emails Page (Resend-Style Split View) ============ */
-.email-split-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
-}
-.email-split-layout.no-detail {
-  grid-template-columns: 1fr;
-}
-@media (max-width: 1024px) {
-  .email-split-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
+/* ============ Emails Page (Full-Width Log + Focused Reader Modal) ============ */
 .email-table {
   width: 100%;
   border-collapse: collapse;
 }
 
 .email-row {
-  transition: background 0.1s ease;
+  transition: background 0.12s ease;
 }
 
 .email-row:hover {
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .email-row.selected {
-  background: rgba(255, 255, 255, 0.055);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .email-table-card {
-  min-height: 420px;
+  min-height: 480px;
+  width: 100%;
 }
 
-.email-detail-card {
-  position: sticky;
-  top: 24px;
+/* Focused Email Reader Modal (Decoupled from page layout) */
+.email-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeInModal 0.18s ease-out;
+}
+
+.email-modal-panel {
+  background: #121316;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+  animation: scaleUpModal 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.email-modal-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.email-modal-meta {
+  padding: 12px 22px;
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+}
+
+.email-modal-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.email-modal-meta-label {
+  width: 55px;
+  color: var(--muted);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.email-modal-body {
+  padding: 20px 22px;
+  background: #09090b;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.email-modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.015);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
 /* ============ Assistant Tool-Call Approval Cards & Controls ============ */

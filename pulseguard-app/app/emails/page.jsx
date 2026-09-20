@@ -6,7 +6,6 @@ import {
   IconMail,
   IconRefresh,
   IconCheck,
-  IconCopy,
   IconZap,
   IconSpinner,
   IconArrowUpRight,
@@ -34,10 +33,17 @@ export default function EmailsPage() {
   const [filter, setFilter] = useState('all'); // 'all' | 'delivered' | 'sent' | 'failed'
   const [search, setSearch] = useState('');
   const [selectedEmail, setSelectedEmail] = useState(null);
-  const [activeTab, setActiveTab] = useState('preview'); // 'preview' | 'html'
-  const [copied, setCopied] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    if (!selectedEmail) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setSelectedEmail(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedEmail]);
 
   const syncTenantFromUrl = useCallback(() => {
     setTenant(tenantFromSearch('all'));
@@ -65,11 +71,10 @@ export default function EmailsPage() {
       const data = await res.json();
       if (data.ok && Array.isArray(data.emails)) {
         setEmails(data.emails);
-        // Automatically select the first email if none is selected
+        // If an email is currently open in the reader modal, keep it synced
         setSelectedEmail((prev) => {
-          if (!prev) return data.emails[0] || null;
-          const found = data.emails.find((e) => e.id === prev.id);
-          return found || data.emails[0] || null;
+          if (!prev) return null;
+          return data.emails.find((e) => e.id === prev.id) || null;
         });
       }
     } catch (e) {
@@ -88,15 +93,6 @@ export default function EmailsPage() {
   const handleTenantChange = (next) => {
     setTenant(next);
     pushTenant(next);
-  };
-
-  const handleCopyHtml = () => {
-    if (!selectedEmail?.html) return;
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(selectedEmail.html);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
   };
 
   const handleSimulateSend = async () => {
@@ -285,204 +281,233 @@ export default function EmailsPage() {
           </div>
         </div>
 
-        {/* Main Content Area: Split View Table + Detail Pane */}
-        <div className={`email-split-layout ${!selectedEmail ? 'no-detail' : ''}`}>
-          {/* Email Table Card */}
-          <div className="card email-table-card" style={{ padding: 0, overflow: 'hidden' }}>
-            {loading ? (
-              <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
-                <IconSpinner size={18} />
-                <div style={{ marginTop: 8 }}>Loading email log…</div>
+        {/* Full-Width Email Log Table Card */}
+        <div className="card email-table-card" style={{ padding: 0, overflow: 'hidden' }}>
+          {loading ? (
+            <div style={{ padding: 48, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+              <IconSpinner size={18} />
+              <div style={{ marginTop: 8 }}>Loading email log…</div>
+            </div>
+          ) : emails.length === 0 ? (
+            <div className="empty-state" style={{ padding: '64px 24px' }}>
+              <span className="empty-icon">
+                <IconMail size={24} />
+              </span>
+              <div className="empty-title">No emails found</div>
+              <div className="empty-sub">
+                {search || filter !== 'all'
+                  ? 'No alert emails match the current filters. Try clearing your search.'
+                  : 'Trigger an anomaly to see the first alert email sent to an account manager.'}
               </div>
-            ) : emails.length === 0 ? (
-              <div className="empty-state" style={{ padding: '48px 24px' }}>
-                <span className="empty-icon">
-                  <IconMail size={24} />
-                </span>
-                <div className="empty-title">No emails found</div>
-                <div className="empty-sub">
-                  {search || filter !== 'all'
-                    ? 'No alert emails match the current filters. Try clearing your search.'
-                    : 'Trigger an anomaly to see the first alert email sent to an account manager.'}
-                </div>
-                <button
-                  className="btn btn-simulate"
-                  onClick={handleSimulateSend}
-                  disabled={simulating}
-                  style={{ marginTop: 14 }}
-                >
-                  <IconMail size={14} />
-                  Send Test Alert
-                </button>
-              </div>
-            ) : (
-              <div className="table-wrap">
-                <table className="email-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '32%' }}>TO</th>
-                      <th style={{ width: '18%' }}>STATUS</th>
-                      <th>SUBJECT</th>
-                      <th style={{ width: '16%', textAlign: 'right' }}>SENT</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {emails.map((e) => {
-                      const isSelected = selectedEmail?.id === e.id;
-                      const statusClass =
-                        e.status === 'delivered' ? 'ok' : e.status === 'failed' ? 'risk' : 'healthy';
+              <button
+                className="btn btn-simulate"
+                onClick={handleSimulateSend}
+                disabled={simulating}
+                style={{ marginTop: 14 }}
+              >
+                <IconMail size={14} />
+                Send Test Alert
+              </button>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table className="email-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '28%' }}>RECIPIENT (TO)</th>
+                    <th style={{ width: '16%' }}>PORTFOLIO</th>
+                    <th style={{ width: '14%' }}>STATUS</th>
+                    <th>SUBJECT</th>
+                    <th style={{ width: '14%', textAlign: 'right' }}>SENT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {emails.map((e) => {
+                    const isSelected = selectedEmail?.id === e.id;
+                    const statusClass =
+                      e.status === 'delivered' ? 'ok' : e.status === 'failed' ? 'risk' : 'healthy';
+                    const t = getTenant(e.tenant);
 
-                      return (
-                        <tr
-                          key={e.id}
-                          onClick={() => setSelectedEmail(e)}
-                          className={`email-row ${isSelected ? 'selected' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                              <div
-                                style={{
-                                  width: 24,
-                                  height: 24,
-                                  borderRadius: 6,
-                                  background: '#FFFFFF',
-                                  padding: 3,
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  flexShrink: 0,
-                                }}
-                              >
-                                <BrandLogo name="gmail" size={14} />
-                              </div>
-                              <span
-                                className="mono"
-                                style={{
-                                  fontSize: 12.5,
-                                  color: isSelected ? 'var(--text)' : 'var(--text-dim)',
-                                  fontWeight: isSelected ? 600 : 400,
-                                  whiteSpace: 'nowrap',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  maxWidth: 200,
-                                }}
-                              >
-                                {e.to}
-                              </span>
-                            </div>
-                          </td>
-                          <td>
-                            <span className={`badge ${statusClass}`} style={{ textTransform: 'capitalize' }}>
-                              <span className="badge-dot" />
-                              {e.status}
-                            </span>
-                          </td>
-                          <td>
+                    return (
+                      <tr
+                        key={e.id}
+                        onClick={() => setSelectedEmail(e)}
+                        className={`email-row ${isSelected ? 'selected' : ''}`}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                             <div
                               style={{
-                                color: isSelected ? '#FFFFFF' : 'var(--text)',
-                                fontWeight: isSelected ? 600 : 450,
-                                fontSize: 13,
+                                width: 24,
+                                height: 24,
+                                borderRadius: 6,
+                                background: '#FFFFFF',
+                                padding: 3,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <BrandLogo name="gmail" size={14} />
+                            </div>
+                            <span
+                              className="mono"
+                              style={{
+                                fontSize: 12.5,
+                                color: 'var(--text)',
+                                fontWeight: 500,
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
-                                maxWidth: 280,
+                                maxWidth: 220,
                               }}
-                              title={e.subject}
                             >
-                              {e.subject}
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <span
-                              className="mono muted"
-                              style={{ fontSize: 11.5 }}
-                              title={e.sentAt ? new Date(e.sentAt).toLocaleString() : ''}
-                            >
-                              {mounted ? formatRelativeTime(e.sentAt) : 'recently'}
+                              {e.to}
                             </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              fontSize: 12.5,
+                              color: 'var(--text-dim)',
+                              fontWeight: 500,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                background: e.tenant === 'tenant-beta' ? '#818cf8' : '#38bdf8',
+                              }}
+                            />
+                            {t ? t.company : (e.tenant || 'Enterprise')}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`badge ${statusClass}`} style={{ textTransform: 'capitalize' }}>
+                            <span className="badge-dot" />
+                            {e.status}
+                          </span>
+                        </td>
+                        <td>
+                          <div
+                            style={{
+                              color: 'var(--text)',
+                              fontWeight: 450,
+                              fontSize: 13,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: 380,
+                            }}
+                            title={e.subject}
+                          >
+                            {e.subject}
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span
+                            className="mono muted"
+                            style={{ fontSize: 11.5 }}
+                            title={e.sentAt ? new Date(e.sentAt).toLocaleString() : ''}
+                          >
+                            {mounted ? formatRelativeTime(e.sentAt) : 'recently'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
-          {/* Email Detail Pane */}
-          {selectedEmail && (
-            <div className="card email-detail-card" style={{ padding: 0, overflow: 'hidden' }}>
-              {/* Detail Header */}
-              <div
-                style={{
-                  padding: '16px 20px',
-                  borderBottom: '1px solid var(--line)',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                  <h3
+        {/* Decoupled Email Reader Modal Overlay — Clean visual rendering, no HTML/code tabs */}
+        {selectedEmail && (
+          <div
+            className="email-modal-backdrop"
+            onClick={(ev) => {
+              if (ev.target === ev.currentTarget) setSelectedEmail(null);
+            }}
+          >
+            <div className="email-modal-panel" role="dialog" aria-modal="true">
+              {/* Modal Header */}
+              <div className="email-modal-header">
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <span
+                      className={`badge ${
+                        selectedEmail.status === 'delivered'
+                          ? 'ok'
+                          : selectedEmail.status === 'failed'
+                          ? 'risk'
+                          : 'healthy'
+                      }`}
+                      style={{ textTransform: 'capitalize' }}
+                    >
+                      <span className="badge-dot" />
+                      {selectedEmail.status}
+                    </span>
+                    <span className="mono muted" style={{ fontSize: 11.5 }}>
+                      ID: {selectedEmail.id}
+                    </span>
+                  </div>
+                  <h2
                     style={{
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: 650,
                       color: 'var(--text)',
-                      marginBottom: 6,
+                      margin: 0,
                       lineHeight: 1.35,
                     }}
                   >
                     {selectedEmail.subject}
-                  </h3>
-                  <span
-                    className={`badge ${
-                      selectedEmail.status === 'delivered'
-                        ? 'ok'
-                        : selectedEmail.status === 'failed'
-                        ? 'risk'
-                        : 'healthy'
-                    }`}
-                    style={{ textTransform: 'capitalize' }}
-                  >
-                    <span className="badge-dot" />
-                    {selectedEmail.status}
-                  </span>
+                  </h2>
                 </div>
-
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'auto 1fr',
-                    gap: '4px 12px',
-                    fontSize: 12,
-                    color: 'var(--muted)',
-                    marginTop: 8,
-                  }}
+                <button
+                  className="btn ghost sm"
+                  onClick={() => setSelectedEmail(null)}
+                  aria-label="Close modal"
+                  style={{ padding: '6px 10px', color: 'var(--muted)', borderRadius: 6 }}
                 >
-                  <span style={{ color: 'var(--muted-dark)' }}>To:</span>
-                  <span className="mono" style={{ color: 'var(--text)' }}>
+                  <IconX size={16} />
+                </button>
+              </div>
+
+              {/* Modal Metadata Bar */}
+              <div className="email-modal-meta">
+                <div className="email-modal-meta-row">
+                  <span className="email-modal-meta-label">To:</span>
+                  <span className="mono" style={{ color: 'var(--text)', fontWeight: 550 }}>
                     {selectedEmail.to}
                   </span>
-                  <span style={{ color: 'var(--muted-dark)' }}>From:</span>
+                </div>
+                <div className="email-modal-meta-row">
+                  <span className="email-modal-meta-label">From:</span>
                   <span className="mono" style={{ color: 'var(--text-dim)' }}>
                     {selectedEmail.from || 'PulseGuard Alerts <alerts@pulseguard.io>'}
                   </span>
-                  <span style={{ color: 'var(--muted-dark)' }}>Sent:</span>
+                </div>
+                <div className="email-modal-meta-row">
+                  <span className="email-modal-meta-label">Sent:</span>
                   <span className="mono" style={{ color: 'var(--text-dim)' }}>
                     {selectedEmail.sentAt ? new Date(selectedEmail.sentAt).toLocaleString() : 'N/A'}
-                  </span>
-                  <span style={{ color: 'var(--muted-dark)' }}>Channel:</span>
-                  <span>
-                    Google Gmail connector (<code className="mono">ec3c1b4a-e281-4c5e-9a6b-90eb4a59882f</code>)
                   </span>
                 </div>
               </div>
 
-              {/* Delivery Stepper */}
+              {/* Delivery Stepper: Sent -> Delivered/Failed */}
               <div
                 style={{
-                  padding: '12px 20px',
+                  padding: '12px 22px',
                   borderBottom: '1px solid var(--line)',
                   background: 'rgba(255, 255, 255, 0.01)',
                   fontSize: 12,
@@ -565,95 +590,40 @@ export default function EmailsPage() {
                 </div>
 
                 <div style={{ fontSize: 11, color: 'var(--muted-dark)' }}>
-                  Delivery estimate derived via Fastn 30s confirmation window. Google Gmail connector
-                  operates without incoming webhooks.
+                  Delivery confirmation tracked via Fastn workflow dispatch window.
                 </div>
               </div>
 
-              {/* Tabs: Preview vs HTML */}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '8px 20px',
-                  borderBottom: '1px solid var(--line)',
-                  background: 'rgba(0, 0, 0, 0.2)',
-                }}
-              >
-                <div className="seg">
-                  <button
-                    className={`seg-btn ${activeTab === 'preview' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('preview')}
-                  >
-                    Preview
-                  </button>
-                  <button
-                    className={`seg-btn ${activeTab === 'html' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('html')}
-                  >
-                    HTML
-                  </button>
-                </div>
-
-                {activeTab === 'html' && (
-                  <button className="btn ghost sm" onClick={handleCopyHtml}>
-                    {copied ? (
-                      <>
-                        <IconCheck size={12} style={{ color: 'var(--ok)' }} />
-                        <span>Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <IconCopy size={12} />
-                        <span>Copy HTML</span>
-                      </>
-                    )}
-                  </button>
-                )}
+              {/* Modal Body: Clean Rendered Visual Email in White Card Iframe — NO HTML tab, NO raw markup */}
+              <div className="email-modal-body">
+                <iframe
+                  srcDoc={selectedEmail.html}
+                  title="Email Reader"
+                  sandbox="allow-same-origin allow-popups"
+                  style={{
+                    width: '100%',
+                    height: '460px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: 8,
+                    background: '#FFFFFF',
+                    display: 'block',
+                  }}
+                />
               </div>
 
-              {/* Tab Body */}
-              <div style={{ padding: 18, background: '#0a0a0c' }}>
-                {activeTab === 'preview' ? (
-                  <iframe
-                    srcDoc={selectedEmail.html}
-                    title="Email Preview"
-                    sandbox="allow-same-origin allow-popups"
-                    style={{
-                      width: '100%',
-                      height: 420,
-                      border: '1px solid var(--line)',
-                      borderRadius: 8,
-                      background: '#FFFFFF',
-                      display: 'block',
-                    }}
-                  />
-                ) : (
-                  <pre
-                    style={{
-                      margin: 0,
-                      padding: 16,
-                      background: '#0e0e11',
-                      border: '1px solid var(--line)',
-                      borderRadius: 8,
-                      color: 'var(--accent-light)',
-                      fontFamily: 'ui-monospace, monospace',
-                      fontSize: 12,
-                      lineHeight: 1.6,
-                      maxHeight: 420,
-                      overflowY: 'auto',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {selectedEmail.html}
-                  </pre>
-                )}
+              {/* Modal Footer */}
+              <div className="email-modal-footer">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--muted)' }}>
+                  <BrandLogo name="gmail" size={14} />
+                  <span>Dispatched via Fastn Google Gmail connector</span>
+                </div>
+                <button className="btn ghost sm" onClick={() => setSelectedEmail(null)}>
+                  Close
+                </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </main>
   );
